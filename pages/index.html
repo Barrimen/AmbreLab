@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portail JDR</title>
+  <style>
+    :root {
+      --bg: #14161a;
+      --card: #1e2127;
+      --text: #e8e6e1;
+      --muted: #9a978f;
+      --accent: #c9a24b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .wrap { max-width: 640px; width: 100%; }
+    h1 { font-size: 1.8rem; margin-bottom: 0.25rem; }
+    p.sub { color: var(--muted); margin-top: 0; margin-bottom: 2rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+    a.card {
+      display: block;
+      background: var(--card);
+      border: 1px solid #2c2f36;
+      border-radius: 10px;
+      padding: 1.25rem;
+      text-decoration: none;
+      color: var(--text);
+      transition: border-color 0.15s ease;
+    }
+    a.card:hover { border-color: var(--accent); }
+    a.card .name { font-weight: 600; margin-bottom: 0.25rem; }
+    a.card .desc { color: var(--muted); font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Portail JDR</h1>
+    <p class="sub">Point d'entrée vers les campagnes et outils.</p>
+    <div class="grid">
+      <!-- Ajoute une carte par campagne/outil au fur et à mesure -->
+      <a class="card" href="#">
+        <div class="name">Campagne à venir</div>
+        <div class="desc">Remplace ce lien par ta prochaine page</div>
+      </a>
+    </div>
+  </div>
+</body>
+</html>

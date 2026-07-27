@@ -248,8 +248,9 @@ footer.note{text-align:center; color:var(--parchment-dim); font-size:11px; margi
 </div>
 
 <div id="modalHost"></div>
-
+<script src="../../shared/dice.js"></script>
 <script>
+
 /* =========================================================================
    DONNÉES DE RÈGLES (Elénior 3.0 — Chapitre III, Le système de combat)
    ========================================================================= */
@@ -372,8 +373,8 @@ let state = {
 };
 
 function uid(){ return 'c'+Math.random().toString(36).slice(2,9); }
-function d(faces){ return 1+Math.floor(Math.random()*faces); }
-
+function d(faces){ return AmbreDice.rollDice(1, faces).total; }
+   
 function newCombatant(){
   return {
     id: uid(), name:'Nouveau combattant', side:'allie', color: TOKEN_PALETTE[state.combatants.length % TOKEN_PALETTE.length],

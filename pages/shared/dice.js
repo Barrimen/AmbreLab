@@ -26,13 +26,25 @@ function rollDice(nbDes, nbFaces) {
  * (Seuil = ⌊Majeure/2⌋ + valeur, jet de d100 sous ce seuil pour réussir).
  * faces=100 par défaut mais paramétrable si un autre système utilise une
  * autre base de dé.
+ *
+ * Critiques (règle simple retenue pour l'instant, à revoir si Elise donne
+ * une règle plus précise) : un jet < 5 est une réussite critique, un jet
+ * > 95 est un échec critique, dans les deux cas indépendamment du seuil.
  * @param {number} seuil
  * @param {number} [faces=100]
- * @returns {{ valeur: number, seuil: number, reussite: boolean }}
+ * @returns {{ valeur: number, seuil: number, reussite: boolean, critique: "reussite"|"echec"|null }}
  */
 function rollUnderThreshold(seuil, faces = 100) {
   const { total: valeur } = rollDice(1, faces);
-  return { valeur, seuil, reussite: valeur <= seuil };
+
+  let critique = null;
+  if (valeur < 5) critique = "reussite";
+  else if (valeur > 95) critique = "echec";
+
+  const reussite =
+    critique === "reussite" ? true : critique === "echec" ? false : valeur <= seuil;
+
+  return { valeur, seuil, reussite, critique };
 }
 
 /**
@@ -46,11 +58,17 @@ function renderRollResult(element, resultat) {
   element.dataset.rollResult = "true";
 
   if ("reussite" in resultat) {
-    element.textContent = `${resultat.valeur} / ${resultat.seuil} — ${
-      resultat.reussite ? "Réussite" : "Échec"
-    }`;
+    const label = resultat.critique === "reussite"
+      ? "Réussite critique"
+      : resultat.critique === "echec"
+      ? "Échec critique"
+      : resultat.reussite
+      ? "Réussite"
+      : "Échec";
+    element.textContent = `${resultat.valeur} / ${resultat.seuil} — ${label}`;
     element.classList.toggle("jet-reussite", resultat.reussite);
     element.classList.toggle("jet-echec", !resultat.reussite);
+    element.classList.toggle("jet-critique", Boolean(resultat.critique));
   } else {
     element.textContent = `${resultat.des.join(" + ")} = ${resultat.total}`;
   }

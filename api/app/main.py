@@ -75,6 +75,25 @@ def get_campaign(campaign_id: int, session: Session = Depends(get_session)):
     return campaign
 
 
+@app.delete("/campaigns/{campaign_id}")
+def delete_campaign(campaign_id: int, session: Session = Depends(get_session)):
+    campaign = session.get(Campaign, campaign_id)
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campagne introuvable")
+
+    has_characters = session.exec(select(Character).where(Character.campaign_id == campaign_id)).first()
+    has_sheets = session.exec(select(CombatSheet).where(CombatSheet.campaign_id == campaign_id)).first()
+    has_sessions = session.exec(select(GameSession).where(GameSession.campaign_id == campaign_id)).first()
+    if has_characters or has_sheets or has_sessions:
+        raise HTTPException(
+            status_code=400,
+            detail="Impossible de supprimer : des personnages, fiches ou sessions sont encore rattachés à cette campagne.",
+        )
+
+    session.delete(campaign)
+    session.commit()
+    return {"deleted": True}
+
 # ---------------------------------------------------------------------------
 # Exemple : personnages, rattachés à une campagne
 # ---------------------------------------------------------------------------

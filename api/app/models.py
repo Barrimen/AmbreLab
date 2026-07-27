@@ -49,16 +49,43 @@ class CharacterBase(SQLModel):
     origine: Optional[str] = None
     niveau_personnage: int = 1
 
-    portrait_url: Optional[str] = None  # clé/URL R2, remplace sheet_file_url
+    portrait_url: Optional[str] = None  # clé objet R2 (pas une URL publique : le
+    # bucket ambrelab-fichiers est privé — voir app/utils.py::generate_download_url)
     description_physique: Optional[str] = None
 
+    # Les 6 majeures (2.1). Mêmes noms que ceux déjà utilisés côté Cadran
+    # (pages/elenior/cadran/index.html, const CARACS) pour rester cohérent
+    # partout où une majeure est référencée. Valeur brute /100 ; le Cadran
+    # applique lui-même la réduction (Majeure/2 + maîtrise...) au moment du
+    # jet, donc aucun calcul de règle ici.
+    carac_agilite: int = 0
+    carac_force: int = 0
+    carac_intellect: int = 0
+    carac_perception: int = 0
+    carac_charisme: int = 0
+    carac_foi: int = 0
+
     pv_actuel: Optional[int] = None
+    pv_max: Optional[int] = None
+    pv_libres: int = 0  # points libres alloués au PV max (distinct de pp_libres —
+    # la fiche d'origine a deux pools séparés, cf. onglet État)
     pp_actuel: Optional[int] = None
     pp_max: Optional[int] = None
-    points_libres: int = 0
+    pp_libres: int = 0
+    points_libres: int = 0  # ancien champ, conservé mais plus utilisé par la
+    # fiche de personnage (voir pv_libres/pp_libres ci-dessus) — inutilisé
+    # ailleurs dans le code à ce jour, laissé pour ne rien casser.
 
     etats_afflictions: Optional[str] = None
     notes: Optional[str] = None  # sert aussi de "notes de campagne" (2.7)
+
+    # Magie (2.4) — champs libres uniquement, aucun moteur de règles ici
+    # (voir commentaire plus haut). Les écoles chiffrées vivent dans
+    # CharacterMagicSchool, pas ici.
+    magie_famille: Optional[str] = None
+    magie_type: Optional[str] = None
+    magie_aspect: Optional[str] = None
+    capacite_unique: Optional[str] = None
 
 
 class Character(CharacterBase, table=True):
@@ -186,6 +213,8 @@ class CharacterWeaponCreate(CharacterWeaponBase):
 class CharacterWeaponMasteryBase(SQLModel):
     category: str  # une des 11 catégories officielles
     value: int = 0
+    majeure_liee: Optional[str] = None  # une des 6 majeures, choix contextuel du joueur —
+    # même mécanique de seuil que CharacterMinorSkill (voir fiche de personnage, jets)
 
 
 class CharacterWeaponMastery(CharacterWeaponMasteryBase, table=True):
@@ -234,6 +263,7 @@ class CharacterArmorPieceCreate(CharacterArmorPieceBase):
 class CharacterMagicSchoolBase(SQLModel):
     name: str  # une des 9 écoles officielles
     value: int = 0
+    majeure_liee: Optional[str] = None  # même mécanique de seuil que CharacterMinorSkill
 
 
 class CharacterMagicSchool(CharacterMagicSchoolBase, table=True):

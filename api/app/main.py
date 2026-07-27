@@ -10,6 +10,7 @@ from typing import List, Optional, Type
 
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from sqlmodel import Session, SQLModel, select
 
 from .database import create_db_and_tables, get_session
@@ -29,7 +30,12 @@ from .models import (
     CharacterCompanion, CharacterCompanionCreate,
     CharacterContact, CharacterContactCreate,
 )
-from .utils import generate_session_code, sync_combat_sheet_from_character
+from .utils import (
+    generate_session_code,
+    sync_combat_sheet_from_character,
+    generate_upload_url,
+    generate_download_url,
+)
 
 
 @asynccontextmanager
@@ -319,6 +325,63 @@ def update_character(
     session.commit()
     session.refresh(db_character)
     return db_character
+
+
+# ---------------------------------------------------------------------------
+# Portrait (R2) — bucket privé : on ne stocke/renvoie jamais de lien public
+# permanent, seulement des URL présignées à courte durée de vie (600s).
+# Voir app/utils.py pour le détail (generate_upload_url / generate_download_url).
+# ---------------------------------------------------------------------------
+
+class PortraitUploadRequest(BaseModel):
+    extension: str  # "jpg", "png", "webp"...
+    content_type: str  # "image/jpeg", "image/png"...
+
+
+class PortraitUploadResponse(BaseModel):
+    upload_url: str
+    key: str
+
+
+class PortraitViewResponse(BaseModel):
+    url: Optional[str] = None
+
+
+@app.post("/characters/{character_id}/portrait-upload-url", response_model=PortraitUploadResponse)
+def get_portrait_upload_url(
+    character_id: int,
+    req: PortraitUploadRequest,
+    session: Session = Depends(get_session),
+):
+    """Étape 1/2 de l'upload : le client PUT ensuite le fichier directement
+    sur `upload_url` (pas via cette API), puis appelle PUT /characters/{id}
+    avec {"portrait_url": key} pour enregistrer la clé."""
+    character = session.get(Character, character_id)
+    if not character:
+        raise HTTPException(status_code=404, detail="Personnage introuvable")
+    ext = req.extension.lstrip(".").lower()
+    key = f"elenior/portraits/character-{character_id}.{ext}"
+    try:
+        upload_url = generate_upload_url(key, req.content_type)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+    return {"upload_url": upload_url, "key": key}
+
+
+@app.get("/characters/{character_id}/portrait-url", response_model=PortraitViewResponse)
+def get_portrait_view_url(character_id: int, session: Session = Depends(get_session)):
+    """À rappeler à chaque affichage (l'URL expire après 600s) : ne jamais
+    mettre en cache côté client au-delà de la durée de vie de la page."""
+    character = session.get(Character, character_id)
+    if not character:
+        raise HTTPException(status_code=404, detail="Personnage introuvable")
+    if not character.portrait_url:
+        return {"url": None}
+    try:
+        url = generate_download_url(character.portrait_url)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+    return {"url": url}
 
 
 # ---------------------------------------------------------------------------

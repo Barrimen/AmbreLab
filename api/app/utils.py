@@ -1,7 +1,66 @@
+import os
 import random
 import string
 
+import boto3
+from botocore.config import Config
 from sqlmodel import Session, select
+
+# ---------------------------------------------------------------------------
+# Cloudflare R2 (S3-compatible) — upload et affichage du portrait, réutilisable
+# pour tout futur fichier de la plateforme (pas seulement les portraits).
+# Le bucket ambrelab-fichiers est privé (accès public désactivé) : on ne
+# stocke jamais un lien public en base, seulement la clé objet
+# (ex: "elenior/portraits/character-12.jpg"), et on génère une URL présignée
+# à la demande, côté upload (PUT) comme côté affichage (GET).
+# Identifiants à poser en variables d'environnement Railway :
+# R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME.
+# ---------------------------------------------------------------------------
+
+R2_ACCOUNT_ID = os.environ.get("R2_ACCOUNT_ID")
+R2_ACCESS_KEY_ID = os.environ.get("R2_ACCESS_KEY_ID")
+R2_SECRET_ACCESS_KEY = os.environ.get("R2_SECRET_ACCESS_KEY")
+R2_BUCKET_NAME = os.environ.get("R2_BUCKET_NAME", "ambrelab-fichiers")
+
+
+def get_r2_client():
+    """Lève une erreur explicite si les identifiants R2 manquent, plutôt
+    qu'un échec obscur au premier appel presigned_url."""
+    if not (R2_ACCOUNT_ID and R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY):
+        raise RuntimeError(
+            "R2 non configuré : variables R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / "
+            "R2_SECRET_ACCESS_KEY manquantes côté Railway."
+        )
+    return boto3.client(
+        "s3",
+        endpoint_url=f"https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com",
+        aws_access_key_id=R2_ACCESS_KEY_ID,
+        aws_secret_access_key=R2_SECRET_ACCESS_KEY,
+        config=Config(signature_version="s3v4", region_name="auto"),
+    )
+
+
+def generate_upload_url(key: str, content_type: str, expires_in: int = 600) -> str:
+    """URL présignée PUT (10 min) : le navigateur envoie l'octet directement
+    à R2, l'API ne fait transiter aucun fichier (sobriété : pas de proxy
+    binaire côté Railway)."""
+    client = get_r2_client()
+    return client.generate_presigned_url(
+        "put_object",
+        Params={"Bucket": R2_BUCKET_NAME, "Key": key, "ContentType": content_type},
+        ExpiresIn=expires_in,
+    )
+
+
+def generate_download_url(key: str, expires_in: int = 600) -> str:
+    """URL présignée GET (10 min) : le bucket reste privé, chaque affichage
+    redemande une URL fraîche plutôt que de stocker un lien permanent."""
+    client = get_r2_client()
+    return client.generate_presigned_url(
+        "get_object",
+        Params={"Bucket": R2_BUCKET_NAME, "Key": key},
+        ExpiresIn=expires_in,
+    )
 
 
 def generate_session_code(length: int = 6) -> str:

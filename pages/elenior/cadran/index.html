@@ -663,7 +663,10 @@ function renderRoundControls(){
 let viewMode = 'dial';
 function setViewMode(mode){ viewMode = mode; render(); }
 
-let playerMode = false;
+// Différenciation MJ/joueurs par URL : ?role=MJ donne la vue complète,
+// tout le reste (pas de paramètre, ou valeur différente) masque par défaut —
+// un lien mal recopié tombe du bon côté (masqué) plutôt que tout montrer.
+let playerMode = new URLSearchParams(location.search).get('role') !== 'MJ';
 function togglePlayerMode(){ playerMode = !playerMode; render(); }
 function maskVal(val, entity){ return (playerMode && entity && entity.hidden) ? '???' : val; }
 function toggleHidden(id){ const c=state.combatants.find(x=>x.id===id); if(c){ c.hidden=!c.hidden; render(); } }

@@ -26,14 +26,39 @@ class CampaignCreate(CampaignBase):
 # ---------------------------------------------------------------------------
 # Personnage
 # ---------------------------------------------------------------------------
+# Champs "état civil" et transverses de l'onglet Identité (cahier des charges
+# fiche de personnage Elénior, section 2.1). Les listes (mineures, sorts,
+# armes, etc.) vivent dans des tables séparées ci-dessous, jamais ici.
+#
+# niveau_personnage : niveau du personnage (1, 2, 3...). À ne pas confondre
+# avec CombatSheet.niveau, qui est un PALIER de jeu (Nul/Médiocre/Normale/
+# Fort/Supérieure/Légendaire) — deux notions différentes malgré le nom
+# proche dans le livre de règles.
 
 class CharacterBase(SQLModel):
     name: str
     player_name: Optional[str] = None
-    # Adresse vers R2 plutôt que le fichier lui-même (cf. séparation
-    # BDD / stockage fichiers qu'on a actée).
-    sheet_file_url: Optional[str] = None
-    notes: Optional[str] = None
+
+    prenom: Optional[str] = None
+    surnom: Optional[str] = None
+    classe: Optional[str] = None
+    race: Optional[str] = None
+    sexe: Optional[str] = None
+    age: Optional[int] = None
+    religion: Optional[str] = None
+    origine: Optional[str] = None
+    niveau_personnage: int = 1
+
+    portrait_url: Optional[str] = None  # clé/URL R2, remplace sheet_file_url
+    description_physique: Optional[str] = None
+
+    pv_actuel: Optional[int] = None
+    pp_actuel: Optional[int] = None
+    pp_max: Optional[int] = None
+    points_libres: int = 0
+
+    etats_afflictions: Optional[str] = None
+    notes: Optional[str] = None  # sert aussi de "notes de campagne" (2.7)
 
 
 class Character(CharacterBase, table=True):
@@ -48,6 +73,13 @@ class CharacterCreate(CharacterBase):
 # ---------------------------------------------------------------------------
 # Fiche de combat (permanente, réutilisable d'une rencontre à l'autre)
 # Ajoutée pour Le Cadran des Trente Temps (campagne Elénior).
+#
+# Reste volontairement "simple" (une arme active, une maîtrise effective) :
+# c'est ce que le Cadran attend pour créer vite un combattant. Le détail
+# complet d'une fiche de personnage (CharacterWeapon, CharacterWeaponMastery,
+# CharacterArmorPiece ci-dessous) alimente ces champs par synchronisation
+# (voir app/utils.py::sync_combat_sheet_from_character), le Cadran n'a rien
+# à changer à sa façon de lire un CombatSheet.
 # ---------------------------------------------------------------------------
 
 class CombatSheetBase(SQLModel):
@@ -104,3 +136,195 @@ class GameSession(GameSessionBase, table=True):
 
 class GameSessionUpdate(SQLModel):
     state: str
+
+
+# ---------------------------------------------------------------------------
+# Caractéristiques mineures (2.2) — rattachées au personnage, pas au combat :
+# elles couvrent aussi bien des compétences sociales/de connaissance que de
+# combat, donc pas leur place sous CombatSheet.
+# ---------------------------------------------------------------------------
+
+class CharacterMinorSkillBase(SQLModel):
+    name: str  # ex: "Pistage"
+    value: int = 0  # /35
+    majeure_liee: str  # une des 6 majeures, choix contextuel du joueur
+
+
+class CharacterMinorSkill(CharacterMinorSkillBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    character_id: int = Field(foreign_key="character.id")
+
+
+class CharacterMinorSkillCreate(CharacterMinorSkillBase):
+    pass
+
+
+# ---------------------------------------------------------------------------
+# Détail combat (2.3) — rattaché à CombatSheet (option A), alimente ses
+# champs simples par synchronisation.
+# ---------------------------------------------------------------------------
+
+class CharacterWeaponBase(SQLModel):
+    name: str
+    category: str  # une des 11 catégories officielles de maîtrise d'armes
+    degats: Optional[str] = None
+    portee: Optional[str] = None
+    proprietes: Optional[str] = None
+    encombrement: int = 0
+    equipee: bool = False  # une seule à True = l'arme "en main" pour le Cadran
+
+
+class CharacterWeapon(CharacterWeaponBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    combat_sheet_id: int = Field(foreign_key="combatsheet.id")
+
+
+class CharacterWeaponCreate(CharacterWeaponBase):
+    pass
+
+
+class CharacterWeaponMasteryBase(SQLModel):
+    category: str  # une des 11 catégories officielles
+    value: int = 0
+
+
+class CharacterWeaponMastery(CharacterWeaponMasteryBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    combat_sheet_id: int = Field(foreign_key="combatsheet.id")
+
+
+class CharacterWeaponMasteryCreate(CharacterWeaponMasteryBase):
+    pass
+
+
+class CharacterArmorPieceBase(SQLModel):
+    localisation: str
+    nom: str
+    qualite: Optional[str] = None
+    encombrement: int = 0
+    prot_contondant: int = 0
+    prot_percant: int = 0
+    prot_tranchant: int = 0
+    malus_discretion: int = 0
+    res_acide: int = 0
+    res_air: int = 0
+    res_elec: int = 0
+    res_feu: int = 0
+    res_froid: int = 0
+    res_lumiere: int = 0
+    res_son: int = 0
+
+
+class CharacterArmorPiece(CharacterArmorPieceBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    combat_sheet_id: int = Field(foreign_key="combatsheet.id")
+
+
+class CharacterArmorPieceCreate(CharacterArmorPieceBase):
+    pass
+
+
+# ---------------------------------------------------------------------------
+# Magie (2.4, hors journal de brassage — exclu pour l'instant, spécifique
+# au Corbeau) et Sorts (2.6). Champs de magie en texte libre (famille, type,
+# aspect, capacité unique) restent des colonnes simples sur Character :
+# aucun moteur de règles de magie ici, ce sujet est traité séparément.
+# ---------------------------------------------------------------------------
+
+class CharacterMagicSchoolBase(SQLModel):
+    name: str  # une des 9 écoles officielles
+    value: int = 0
+
+
+class CharacterMagicSchool(CharacterMagicSchoolBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    character_id: int = Field(foreign_key="character.id")
+
+
+class CharacterMagicSchoolCreate(CharacterMagicSchoolBase):
+    pass
+
+
+class CharacterSpecialSkillBase(SQLModel):
+    name: str
+    description: Optional[str] = None
+
+
+class CharacterSpecialSkill(CharacterSpecialSkillBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    character_id: int = Field(foreign_key="character.id")
+
+
+class CharacterSpecialSkillCreate(CharacterSpecialSkillBase):
+    pass
+
+
+class CharacterSpellBase(SQLModel):
+    name: str
+    ecole: Optional[str] = None
+    cout: Optional[str] = None
+    portee: Optional[str] = None
+    duree: Optional[str] = None
+    description: Optional[str] = None
+
+
+class CharacterSpell(CharacterSpellBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    character_id: int = Field(foreign_key="character.id")
+
+
+class CharacterSpellCreate(CharacterSpellBase):
+    pass
+
+
+# ---------------------------------------------------------------------------
+# Inventaire (2.5)
+# ---------------------------------------------------------------------------
+
+class CharacterInventoryItemBase(SQLModel):
+    name: str
+    quantite: int = 1
+    notes: Optional[str] = None
+
+
+class CharacterInventoryItem(CharacterInventoryItemBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    character_id: int = Field(foreign_key="character.id")
+
+
+class CharacterInventoryItemCreate(CharacterInventoryItemBase):
+    pass
+
+
+# ---------------------------------------------------------------------------
+# Compagnons & Notes (2.7, hors carnet de contrats compromettants — exclu
+# pour l'instant, spécifique au Corbeau)
+# ---------------------------------------------------------------------------
+
+class CharacterCompanionBase(SQLModel):
+    name: str
+    type_: Optional[str] = None  # "compagnon" ou "monture", texte libre
+    notes: Optional[str] = None
+
+
+class CharacterCompanion(CharacterCompanionBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    character_id: int = Field(foreign_key="character.id")
+
+
+class CharacterCompanionCreate(CharacterCompanionBase):
+    pass
+
+
+class CharacterContactBase(SQLModel):
+    name: str
+    notes: Optional[str] = None
+
+
+class CharacterContact(CharacterContactBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    character_id: int = Field(foreign_key="character.id")
+
+
+class CharacterContactCreate(CharacterContactBase):
+    pass

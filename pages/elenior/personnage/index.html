@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fiche de personnage — Elénior</title>
+<link rel="stylesheet" href="../tokens.css">
+<style>
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--ink);color:var(--parchment);}
+body{
+  font-family:'Spectral',serif;
+  background:
+    radial-gradient(1200px 600px at 15% -10%, rgba(192,132,66,0.08), transparent 60%),
+    radial-gradient(1000px 500px at 110% 10%, rgba(95,148,132,0.08), transparent 60%),
+    var(--ink);
+  min-height:100vh;
+  padding:20px 20px 76px;
+}
+h1,h2,h3{font-family:'Cinzel',serif; letter-spacing:0.03em; margin:0;}
+.wrap{max-width:1180px;margin:0 auto;}
+.masque{display:none !important;}
+
+/* ---------- Header ---------- */
+header.top{
+  display:flex; align-items:baseline; justify-content:space-between;
+  border-bottom:1px solid var(--line); padding-bottom:14px; margin-bottom:18px;
+  flex-wrap:wrap; gap:10px;
+}
+header.top h1{font-size:24px; color:var(--parchment); font-weight:700;}
+header.top h1 span{color:var(--copper);}
+.subtitle{font-size:12.5px; color:var(--parchment-dim); font-style:italic; margin-top:4px;}
+
+/* ---------- Panels ---------- */
+.panel{
+  background:linear-gradient(180deg, var(--ink-2), var(--ink-3));
+  border:1px solid var(--line);
+  border-radius:6px;
+  padding:14px 16px 16px;
+  margin-bottom:16px;
+}
+.panel h2{font-size:14px; color:var(--copper); margin-bottom:10px; text-transform:uppercase; letter-spacing:0.06em;}
+
+/* ---------- Buttons ---------- */
+button{
+  font-family:'Cinzel',serif; font-size:11px; letter-spacing:0.05em; text-transform:uppercase;
+  background:transparent; color:var(--parchment); border:1px solid var(--copper-dim);
+  padding:8px 13px; border-radius:2px; cursor:pointer; transition:all .15s ease;
+}
+button:hover{background:rgba(192,132,66,0.12); border-color:var(--copper);}
+button.primary{background:var(--copper); color:var(--ink); border-color:var(--copper); font-weight:700;}
+button.primary:hover{background:#D69856;}
+button.ghost{border-color:var(--line); color:var(--parchment-dim); padding:5px 10px; font-size:10px;}
+button.danger{border-color:var(--blood); color:var(--blood); padding:4px 9px; font-size:10px;}
+button.danger:hover{background:rgba(168,64,75,0.15);}
+button:disabled{opacity:0.35; cursor:not-allowed;}
+.btnrow{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;}
+
+/* ---------- Forms ---------- */
+label{display:block; font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--parchment-dim); margin-bottom:4px;}
+input,select,textarea{
+  width:100%; background:var(--ink); border:1px solid var(--line); color:var(--parchment);
+  padding:6px 8px; border-radius:2px; font-family:'Spectral'; font-size:13px;
+}
+textarea{resize:vertical;}
+.field{margin-bottom:10px;}
+.field-row{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+.field-row3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;}
+@media (max-width:760px){ .field-row,.field-row3{grid-template-columns:1fr;} }
+.hint{font-size:10.5px; color:var(--parchment-dim); font-style:italic; margin-top:6px; line-height:1.4;}
+
+/* ---------- Tables ---------- */
+table{width:100%; border-collapse:collapse;}
+.jet-table th{font-size:9.5px; text-transform:uppercase; letter-spacing:0.05em; color:var(--parchment-dim); text-align:left; padding:4px 6px; border-bottom:1px solid var(--line); white-space:nowrap;}
+.jet-table td{padding:3px 5px; border-bottom:1px solid var(--line); vertical-align:middle;}
+.jet-table input[type=number]{width:60px;}
+.jet-table input[type=checkbox]{width:auto;}
+
+/* ---------- Tabs ---------- */
+.tabs-bar{display:flex; flex-wrap:wrap; gap:2px; border-bottom:1px solid var(--line); margin-bottom:18px;}
+.tab-btn{border:none; border-bottom:3px solid transparent; background:transparent; color:var(--parchment-dim); padding:9px 14px; font-size:11.5px;}
+.tab-btn.actif{color:var(--copper); border-bottom-color:var(--copper);}
+.tab-page{display:none;}
+.tab-page.actif{display:block;}
+
+/* ---------- Quotas ---------- */
+.quota-ligne{display:flex; align-items:center; gap:10px; font-size:12px; margin-bottom:6px;}
+.quota-ligne > span:first-child{min-width:180px;}
+.quota-barre{flex:1; max-width:180px; height:6px; border-radius:3px; background:rgba(233,223,196,0.12); overflow:hidden;}
+.quota-barre > div{height:100%; background:var(--verdigris);}
+.quota-barre.depasse > div{background:var(--blood);}
+.quota-alerte{color:var(--blood); font-weight:700; font-size:11px;}
+
+/* ---------- État du personnage ---------- */
+.etat-ligne{display:flex; justify-content:space-between; padding:3px 8px; border-radius:3px; font-size:12.5px;}
+.etat-ligne.actif{background:var(--copper); color:var(--ink); font-weight:700;}
+
+/* ---------- Portrait ---------- */
+.portrait-cadre{border:1px solid var(--line); border-radius:5px; background:rgba(0,0,0,0.15); min-height:200px; display:flex; align-items:center; justify-content:center; overflow:hidden; margin-bottom:10px;}
+.portrait-cadre img{width:100%; height:auto; max-height:520px; object-fit:contain;}
+
+/* ---------- Sélecteur de personnage ---------- */
+.perso-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(180px,1fr)); gap:10px; margin-bottom:10px;}
+.perso-carte{text-align:left; padding:12px; border:1px solid var(--line); border-radius:4px; background:rgba(0,0,0,0.15);}
+.perso-carte:hover{border-color:var(--copper);}
+.perso-nom{font-family:'Cinzel',serif; font-size:13px; color:var(--parchment); margin-bottom:4px;}
+.perso-meta{font-size:11px; color:var(--parchment-dim);}
+
+/* ---------- Barre d'outils ---------- */
+.barre-outils{position:fixed; bottom:0; left:0; right:0; background:rgba(18,21,27,0.97); display:flex; gap:10px; justify-content:center; align-items:center; padding:9px; z-index:30; border-top:1px solid var(--line); flex-wrap:wrap;}
+.etat-sv{color:var(--parchment-dim); font-size:11px; font-style:italic;}
+#statut-chargement{color:var(--gold); font-size:12px; font-style:italic; margin-bottom:10px;}
+#erreur-globale{color:var(--blood); font-size:12px; margin-bottom:10px;}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Fiche de <span>Personnage</span> — Elénior</h1>
+      <div class="subtitle">Branchée sur api.ambrelab.com</div>
+    </div>
+  </header>
+
+  <div id="statut-chargement" class="masque"></div>
+  <div id="erreur-globale" class="masque"></div>
+
+  <div id="ecran-selecteur">
+    <div class="panel">
+      <h2>Personnages de la campagne</h2>
+      <div id="selecteur-liste" class="perso-grid"></div>
+      <div class="btnrow"><button id="btn-nouveau-perso" class="primary">+ Nouveau personnage</button></div>
+    </div>
+  </div>
+
+  <div id="ecran-fiche" class="masque">
+    <div class="tabs-bar" id="entete-onglets"></div>
+    <div id="conteneur-onglets"></div>
+  </div>
+</div>
+
+<div class="barre-outils">
+  <button id="btn-changer-perso" class="ghost masque">Changer de personnage</button>
+  <button id="btn-verrou" class="ghost masque">Verrouiller la fiche</button>
+  <button id="btn-effacer-jets" class="ghost masque">Effacer les jets</button>
+  <span class="etat-sv" id="sv"></span>
+</div>
+
+<script src="../../shared/dice.js"></script>
+<script src="../../shared/lock.js"></script>
+<script src="../rules.js"></script>
+<script>
+/* ============================================================================
+   FICHE DE PERSONNAGE ELÉNIOR — branchée sur l'API commune AmbreLab.
+   1. Config + état   2. Outils DOM   3. Appels API   4. Sauvegarde
+   5. Sélecteur de personnage   6. Chargement + provisionnement des catalogues
+   7. Onglets (shell)   8. Fabriques génériques (tableaux de jets, listes)
+   9. Pages   10. Calculs (quotas, PV/PP, encombrement, TA)   11. Démarrage
+   ============================================================================ */
+
+const API_BASE = 'https://api.ambrelab.com';
+const CAMPAIGN_ID = 1; // Elénior — même convention que le Cadran
+
+const etat = {
+  character: null,
+  combatSheet: null,
+  mineures: [], ecoles: [], maitrises: [], armes: [], armure: [],
+  sorts: [], inventaire: [], compagnons: [], contacts: [], competences: [],
+  categorieArmure: 'Légère', // transitoire : pas de champ dédié côté API
+};
+
+// Références vers les fonctions de recalcul internes à l'onglet Combat,
+// exposées ici pour être rappelées depuis l'onglet Caractéristiques quand
+// une majeure change (Encombrement et TA en dépendent tous les deux).
+let rafraichirCalculateurTA = () => {};
+let rafraichirCalculateurTASelectArme = () => {};
+
+/* ---------- 2. OUTILS DOM ---------- */
+
+function el(tag, attrs = {}, ...enfants) {
+  const e = document.createElement(tag);
+  for (const k in attrs) {
+    if (attrs[k] === undefined || attrs[k] === null) continue;
+    if (k === 'class') e.className = attrs[k];
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), attrs[k]);
+    else e.setAttribute(k, attrs[k]);
+  }
+  enfants.forEach((c) => {
+    if (typeof c === 'string') e.appendChild(document.createTextNode(c));
+    else if (c) e.appendChild(c);
+  });
+  return e;
+}
+
+// Marque un contrôle comme concerné par le verrouillage (pages/shared/lock.js).
+function verrouillable(elm, opts = {}) {
+  elm.setAttribute('data-lockable', 'true');
+  if (opts.editableLocked) elm.setAttribute('data-editable-locked', 'true');
+  return elm;
+}
+
+function afficherErreur(message) {
+  const zone = document.getElementById('erreur-globale');
+  zone.textContent = message;
+  zone.classList.remove('masque');
+}
+function effacerErreur() {
+  const zone = document.getElementById('erreur-globale');
+  zone.textContent = '';
+  zone.classList.add('masque');
+}
+function afficherChargement(message) {
+  const zone = document.getElementById('statut-chargement');
+  zone.textContent = message;
+  zone.classList.remove('masque');
+}
+function masquerChargement() {
+  document.getElementById('statut-chargement').classList.add('masque');
+}
+
+/* ---------- 3. APPELS API ---------- */
+
+async function api(path, opts = {}) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+  });
+  if (!res.ok) {
+    let detail = res.statusText;
+    try { const j = await res.json(); detail = j.detail || detail; } catch (e) { /* pas de corps JSON */ }
+    throw new Error(`${res.status} ${detail}`);
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
+const apiGet = (path) => api(path);
+const apiPost = (path, body) => api(path, { method: 'POST', body: JSON.stringify(body) });
+const apiPut = (path, body) => api(path, { method: 'PUT', body: JSON.stringify(body) });
+const apiDelete = (path) => api(path, { method: 'DELETE' });
+
+function sansIdEtCampagne(obj) {
+  const copie = { ...obj };
+  delete copie.id; delete copie.campaign_id;
+  return copie;
+}
+function sansIdCombatSheet(cs) {
+  const copie = { ...cs };
+  delete copie.id; delete copie.campaign_id;
+  return copie;
+}
+
+/* ---------- 4. SAUVEGARDE (personnage) ---------- */
+
+let minuteurSauvegarde = null;
+function sauvegarderPersonnage() {
+  clearTimeout(minuteurSauvegarde);
+  minuteurSauvegarde = setTimeout(async () => {
+    try {
+      const updated = await apiPut(`/characters/${etat.character.id}`, sansIdEtCampagne(etat.character));
+      Object.assign(etat.character, updated);
+      document.getElementById('sv').textContent = `Enregistré à ${new Date().toLocaleTimeString('fr-FR')}`;
+    } catch (e) {
+      document.getElementById('sv').textContent = `Erreur d'enregistrement : ${e.message}`;
+    }
+  }, 500);
+}
+
+/* ---------- Champs liés génériques (character) ---------- */
+
+function champTexte(obj, cle, placeholder, opts = {}) {
+  const i = el('input', { type: 'text', placeholder: placeholder || '', value: obj[cle] ?? '' });
+  verrouillable(i, opts);
+  i.addEventListener('input', () => { obj[cle] = i.value; sauvegarderPersonnage(); if (opts.onExtra) opts.onExtra(); });
+  return i;
+}
+function champNombre(obj, cle, opts = {}) {
+  const i = el('input', { type: 'number', value: obj[cle] ?? 0 });
+  if (opts.min !== undefined) i.setAttribute('min', opts.min);
+  if (opts.max !== undefined) i.setAttribute('max', opts.max);
+  verrouillable(i, opts);
+  i.addEventListener('input', () => { obj[cle] = Number(i.value) || 0; sauvegarderPersonnage(); if (opts.onExtra) opts.onExtra(); });
+  return i;
+}
+function champTextarea(obj, cle, placeholder, hauteur, opts = {}) {
+  const t = el('textarea', { style: hauteur ? `min-height:${hauteur}px` : '', placeholder: placeholder || '' });
+  t.value = obj[cle] || '';
+  verrouillable(t, opts);
+  t.addEventListener('input', () => { obj[cle] = t.value; sauvegarderPersonnage(); if (opts.onExtra) opts.onExtra(); });
+  return t;
+}
+
+/* ---------- 5. SÉLECTEUR DE PERSONNAGE ---------- */
+
+async function chargerSelecteurPersonnages() {
+  effacerErreur();
+  const conteneur = document.getElementById('selecteur-liste');
+  conteneur.innerHTML = '';
+  try {
+    const persos = await apiGet(`/campaigns/${CAMPAIGN_ID}/characters`);
+    if (persos.length === 0) {
+      conteneur.appendChild(el('p', { class: 'hint' }, 'Aucun personnage dans cette campagne pour le moment.'));
+    }
+    persos.forEach((p) => {
+      const carte = el('button', { class: 'perso-carte', onclick: () => choisirPersonnage(p.id) },
+        el('div', { class: 'perso-nom' }, p.name || '(sans nom)'),
+        el('div', { class: 'perso-meta' }, [p.classe, p.race].filter(Boolean).join(' · ') || '—'));
+      conteneur.appendChild(carte);
+    });
+  } catch (e) {
+    afficherErreur(`Impossible de charger les personnages : ${e.message}`);
+  }
+}
+
+async function creerNouveauPersonnage() {
+  const nom = prompt('Nom du personnage ?');
+  if (!nom) return;
+  try {
+    const created = await apiPost(`/campaigns/${CAMPAIGN_ID}/characters`, { name: nom });
+    await choisirPersonnage(created.id);
+  } catch (e) {
+    afficherErreur(`Impossible de créer le personnage : ${e.message}`);
+  }
+}
+
+function retourSelecteur() {
+  document.getElementById('ecran-fiche').classList.add('masque');
+  document.getElementById('ecran-selecteur').classList.remove('masque');
+  document.getElementById('btn-changer-perso').classList.add('masque');
+  document.getElementById('btn-verrou').classList.add('masque');
+  document.getElementById('btn-effacer-jets').classList.add('masque');
+  chargerSelecteurPersonnages();
+}
+
+async function choisirPersonnage(id) {
+  effacerErreur();
+  afficherChargement('Chargement du personnage…');
+  try {
+    etat.character = await apiGet(`/characters/${id}`);
+    const sheets = await apiGet(`/campaigns/${CAMPAIGN_ID}/combatsheets`);
+    etat.combatSheet = sheets.find((s) => s.character_id === id) || null;
+    await chargerToutesLesListes();
+    await provisionnerCataloguesSiVides();
+    document.getElementById('ecran-selecteur').classList.add('masque');
+    document.getElementById('ecran-fiche').classList.remove('masque');
+    document.getElementById('btn-changer-perso').classList.remove('masque');
+    document.getElementById('btn-verrou').classList.remove('masque');
+    document.getElementById('btn-effacer-jets').classList.remove('masque');
+    construireTout();
+    recalculerTout();
+  } catch (e) {
+    afficherErreur(`Impossible de charger ce personnage : ${e.message}`);
+  } finally {
+    masquerChargement();
+  }
+}
+
+/* ---------- 6. CHARGEMENT DES LISTES + PROVISIONNEMENT DES CATALOGUES ---------- */
+
+async function chargerToutesLesListes() {
+  const cid = etat.character.id;
+  const [mineures, ecoles, sorts, inventaire, compagnons, contacts, competences] = await Promise.all([
+    apiGet(`/characters/${cid}/minor-skills`),
+    apiGet(`/characters/${cid}/magic-schools`),
+    apiGet(`/characters/${cid}/spells`),
+    apiGet(`/characters/${cid}/inventory`),
+    apiGet(`/characters/${cid}/companions`),
+    apiGet(`/characters/${cid}/contacts`),
+    apiGet(`/characters/${cid}/special-skills`),
+  ]);
+  etat.mineures = mineures; etat.ecoles = ecoles; etat.sorts = sorts; etat.inventaire = inventaire;
+  etat.compagnons = compagnons; etat.contacts = contacts; etat.competences = competences;
+
+  if (etat.combatSheet) {
+    const sid = etat.combatSheet.id;
+    const [maitrises, armes, armure] = await Promise.all([
+      apiGet(`/combatsheets/${sid}/weapon-masteries`),
+      apiGet(`/combatsheets/${sid}/weapons`),
+      apiGet(`/combatsheets/${sid}/armor-pieces`),
+    ]);
+    etat.maitrises = maitrises; etat.armes = armes; etat.armure = armure;
+  } else {
+    etat.maitrises = []; etat.armes = []; etat.armure = [];
+  }
+}
+
+// Un nouveau personnage n'a, au départ, aucune ligne de mineures/maîtrises/
+// écoles : le catalogue est fixe (cf. pages/elenior/rules.js) et provisionné
+// une seule fois ici, via les routes CRUD génériques déjà en place (pas de
+// nouvelle route serveur pour ça).
+async function provisionnerCataloguesSiVides() {
+  const R = window.AmbreRules;
+  const cid = etat.character.id;
+
+  if (etat.mineures.length === 0) {
+    afficherChargement('Mise en place du catalogue des mineures…');
+    for (const nom of R.MINEURES_CATALOGUE) {
+      const created = await apiPost(`/characters/${cid}/minor-skills`, { name: nom, value: 0, majeure_liee: '' });
+      etat.mineures.push(created);
+    }
+  }
+  if (etat.ecoles.length === 0) {
+    afficherChargement('Mise en place du catalogue des écoles de magie…');
+    for (const nom of R.ECOLES_CATALOGUE) {
+      const created = await apiPost(`/characters/${cid}/magic-schools`, { name: nom, value: 0 });
+      etat.ecoles.push(created);
+    }
+  }
+  if (etat.combatSheet && etat.maitrises.length === 0) {
+    afficherChargement('Mise en place du catalogue des maîtrises d\'armes…');
+    const sid = etat.combatSheet.id;
+    for (const cat of R.CATEGORIES_ARMES) {
+      const created = await apiPost(`/combatsheets/${sid}/weapon-masteries`, { category: cat, value: 0 });
+      etat.maitrises.push(created);
+    }
+  }
+}
+
+/* ---------- 7. ONGLETS (SHELL) ---------- */
+
+const ONGLETS = [
+  { id: 'identite', titre: 'Identité' },
+  { id: 'caracteristiques', titre: 'Caractéristiques' },
+  { id: 'combat', titre: 'Combat' },
+  { id: 'magie', titre: 'Magie' },
+  { id: 'sorts', titre: 'Sorts' },
+  { id: 'notes', titre: 'Compagnons & Notes' },
+  { id: 'options', titre: 'Options', desactive: true },
+];
+
+function construireTout() {
+  const barre = document.getElementById('entete-onglets'); barre.innerHTML = '';
+  const conteneur = document.getElementById('conteneur-onglets'); conteneur.innerHTML = '';
+  ONGLETS.forEach((o, i) => {
+    const attrs = { class: 'tab-btn' + (i === 0 ? ' actif' : '') };
+    if (!o.desactive) attrs.onclick = () => changerOnglet(o.id);
+    const b = el('button', attrs, o.titre);
+    b.id = 'onglet-btn-' + o.id;
+    if (o.desactive) b.disabled = true;
+    barre.appendChild(b);
+    conteneur.appendChild(el('div', { class: 'tab-page' + (i === 0 ? ' actif' : ''), id: 'page-' + o.id }));
+  });
+  construirePageIdentite(document.getElementById('page-identite'));
+  construirePageCaracteristiques(document.getElementById('page-caracteristiques'));
+  construirePageCombat(document.getElementById('page-combat'));
+  construirePageMagie(document.getElementById('page-magie'));
+  construirePageSorts(document.getElementById('page-sorts'));
+  construirePageNotes(document.getElementById('page-notes'));
+  document.getElementById('page-options').appendChild(el('p', { class: 'hint' }, 'Réservé pour une prochaine évolution.'));
+}
+function changerOnglet(id) {
+  document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('actif'));
+  document.querySelectorAll('.tab-page').forEach((p) => p.classList.remove('actif'));
+  document.getElementById('onglet-btn-' + id).classList.add('actif');
+  document.getElementById('page-' + id).classList.add('actif');
+}
+
+/* ---------- 8. FABRIQUES GÉNÉRIQUES ---------- */
+
+// Tableau de jets (mineures / maîtrises d'armes / écoles de magie) : même
+// mécanique de seuil partout (Seuil = floor(Majeure/2) + valeur).
+function construireTableauJets({ conteneur, titre, liste, colonneLabel, obtenirNom, majFn, apresChangement }) {
+  const R = window.AmbreRules;
+  const cadre = el('div', { class: 'panel' });
+  if (titre) cadre.appendChild(el('h2', {}, titre));
+  const table = el('table', { class: 'jet-table' });
+  table.appendChild(el('tr', {}, el('th', {}, colonneLabel), el('th', {}, 'Valeur'), el('th', {}, 'Palier'), el('th', {}, 'Majeure'), el('th', {}, 'Seuil'), el('th', {}, 'Jet')));
+  liste.forEach((item) => {
+    const tr = el('tr');
+    tr.appendChild(el('td', {}, obtenirNom(item)));
+    const tdPalier = el('td', {}, R.palierMineure(item.value));
+    const tdSeuil = el('td', {}); const tdJet = el('td', {});
+
+    const inputVal = el('input', { type: 'number', min: 0, max: 100, value: item.value ?? 0 });
+    verrouillable(inputVal);
+    inputVal.addEventListener('input', async () => {
+      const v = Number(inputVal.value) || 0;
+      await majFn(item, { value: v });
+      tdPalier.textContent = R.palierMineure(item.value);
+      remplirSeuilEtJet(item, tdSeuil, tdJet);
+      if (apresChangement) apresChangement();
+    });
+
+    const selectMaj = el('select');
+    selectMaj.appendChild(el('option', { value: '' }, '—'));
+    R.MAJEURES_NOMS.forEach((n) => {
+      const o = el('option', { value: n }, R.MAJEURES_LABELS[n]);
+      if (item.majeure_liee === n) o.setAttribute('selected', 'true');
+      selectMaj.appendChild(o);
+    });
+    verrouillable(selectMaj);
+    selectMaj.addEventListener('change', async () => {
+      await majFn(item, { majeure_liee: selectMaj.value });
+      remplirSeuilEtJet(item, tdSeuil, tdJet);
+      if (apresChangement) apresChangement();
+    });
+
+    tr.appendChild(el('td', {}, inputVal));
+    tr.appendChild(tdPalier);
+    tr.appendChild(el('td', {}, selectMaj));
+    remplirSeuilEtJet(item, tdSeuil, tdJet);
+    tr.appendChild(tdSeuil); tr.appendChild(tdJet);
+    table.appendChild(tr);
+  });
+  cadre.appendChild(table);
+  if (conteneur) conteneur.appendChild(cadre);
+  return cadre;
+}
+
+function remplirSeuilEtJet(item, tdSeuil, tdJet) {
+  const R = window.AmbreRules;
+  tdJet.innerHTML = '';
+  if (!item.majeure_liee) { tdSeuil.textContent = '—'; return; }
+  const majVal = etat.character['carac_' + item.majeure_liee.toLowerCase()];
+  const seuil = R.calculerSeuil(majVal, item.value);
+  tdSeuil.textContent = seuil;
+  const btn = el('button', { class: 'ghost', 'data-dice-button': 'true' }, 'd100');
+  const resSpan = el('span', { style: 'margin-left:6px;font-size:12px;' });
+  btn.addEventListener('click', () => {
+    const r = window.AmbreDice.rollUnderThreshold(seuil, 100);
+    window.AmbreDice.renderRollResult(resSpan, r);
+  });
+  tdJet.appendChild(btn); tdJet.appendChild(resSpan);
+}
+
+async function majMineure(item, champs) {
+  Object.assign(item, champs);
+  const payload = { name: item.name, value: Number(item.value) || 0, majeure_liee: item.majeure_liee || '' };
+  const updated = await apiPut(`/minor-skills/${item.id}`, payload);
+  Object.assign(item, updated);
+}
+async function majMaitrise(item, champs) {
+  Object.assign(item, champs);
+  const payload = { category: item.category, value: Number(item.value) || 0, majeure_liee: item.majeure_liee || null };
+  const updated = await apiPut(`/weapon-masteries/${item.id}`, payload);
+  Object.assign(item, updated);
+}
+async function majEcole(item, champs) {
+  Object.assign(item, champs);
+  const payload = { name: item.name, value: Number(item.value) || 0, majeure_liee: item.majeure_liee || null };
+  const updated = await apiPut(`/magic-schools/${item.id}`, payload);
+  Object.assign(item, updated);
+}
+
+// Liste éditable générique (compagnons, inventaire, contacts...) : chaque
+// colonne est un champ texte ou nombre, avec ajout/suppression via l'API.
+function construireListeGenerique({ conteneur, titre, liste, champs, creerItem, majItem, supprimerItem, libelleAjout }) {
+  const cadre = el('div', { class: 'panel' });
+  const entete = el('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;' });
+  entete.appendChild(el('h2', { style: 'margin:0;' }, titre));
+  const btnAjout = el('button', { class: 'ghost' }, libelleAjout);
+  verrouillable(btnAjout);
+  entete.appendChild(btnAjout);
+  cadre.appendChild(entete);
+  const table = el('table', { class: 'jet-table' });
+
+  function dessiner() {
+    table.innerHTML = '';
+    const trE = el('tr');
+    champs.forEach(([, label]) => trE.appendChild(el('th', {}, label)));
+    trE.appendChild(el('th', {}));
+    table.appendChild(trE);
+    liste.forEach((item) => {
+      const tr = el('tr');
+      champs.forEach(([cle, , type]) => {
+        const inp = el('input', { type: type === 'number' ? 'number' : 'text', value: item[cle] ?? (type === 'number' ? 0 : '') });
+        verrouillable(inp);
+        inp.addEventListener('input', async () => {
+          item[cle] = type === 'number' ? (Number(inp.value) || 0) : inp.value;
+          const updated = await majItem(item);
+          if (updated) Object.assign(item, updated);
+        });
+        tr.appendChild(el('td', {}, inp));
+      });
+      const btnSup = el('button', { class: 'danger' }, '✕');
+      verrouillable(btnSup);
+      btnSup.addEventListener('click', async () => {
+        await supprimerItem(item);
+        const idx = liste.indexOf(item);
+        if (idx > -1) liste.splice(idx, 1);
+        dessiner();
+      });
+      tr.appendChild(el('td', {}, btnSup));
+      table.appendChild(tr);
+    });
+  }
+  dessiner();
+  cadre.appendChild(table);
+  btnAjout.addEventListener('click', async () => {
+    const created = await creerItem();
+    liste.push(created);
+    dessiner();
+  });
+  if (conteneur) conteneur.appendChild(cadre);
+}
+
+/* ---------- 9. PAGES ---------- */
+
+/* ----- Identité (Identité, État, Quotas) ----- */
+function construirePageIdentite(page) {
+  page.innerHTML = '';
+  const R = window.AmbreRules;
+
+  const cadreId = el('div', { class: 'panel' });
+  cadreId.appendChild(el('h2', {}, 'Identité'));
+  const grille = el('div', { class: 'field-row3' });
+  [['name', 'Nom'], ['prenom', 'Prénom'], ['surnom', 'Surnom'], ['classe', 'Classe'], ['race', 'Race'], ['sexe', 'Sexe'],
+    ['age', 'Âge', 'number'], ['religion', 'Religion'], ['origine', 'Origine'], ['niveau_personnage', 'Niveau', 'number']]
+    .forEach(([cle, label, type]) => {
+      const champ = el('div', { class: 'field' });
+      champ.appendChild(el('label', {}, label));
+      champ.appendChild(type === 'number' ? champNombre(etat.character, cle, { min: 1 }) : champTexte(etat.character, cle));
+      grille.appendChild(champ);
+    });
+  cadreId.appendChild(grille);
+  page.appendChild(cadreId);
+
+  page.appendChild(construireBlocPortrait());
+
+  const cadreDesc = el('div', { class: 'panel' });
+  cadreDesc.appendChild(el('h2', {}, 'Description physique'));
+  cadreDesc.appendChild(champTextarea(etat.character, 'description_physique', 'Apparence, signes distinctifs…', 90));
+  page.appendChild(cadreDesc);
+
+  const cadreEtat = el('div', { class: 'panel' });
+  cadreEtat.appendChild(el('h2', {}, 'État'));
+  const grilleEtat = el('div', { class: 'field-row' });
+
+  const colPv = el('div');
+  colPv.appendChild(el('label', {}, 'PV actuel'));
+  colPv.appendChild(champNombre(etat.character, 'pv_actuel', { editableLocked: true, onExtra: recalculerTout }));
+  colPv.appendChild(el('label', { style: 'margin-top:8px;' }, 'Points libres → PV'));
+  colPv.appendChild(champNombre(etat.character, 'pv_libres', { min: 0, onExtra: recalculerTout }));
+  colPv.appendChild(el('p', { id: 'pv-max-affiche', class: 'hint' }));
+
+  const colPp = el('div');
+  colPp.appendChild(el('label', {}, 'PP actuel'));
+  colPp.appendChild(champNombre(etat.character, 'pp_actuel', { editableLocked: true, onExtra: recalculerTout }));
+  colPp.appendChild(el('label', { style: 'margin-top:8px;' }, 'Points libres → PP'));
+  colPp.appendChild(champNombre(etat.character, 'pp_libres', { min: 0, onExtra: recalculerTout }));
+  colPp.appendChild(el('p', { id: 'pp-max-affiche', class: 'hint' }));
+
+  grilleEtat.appendChild(colPv); grilleEtat.appendChild(colPp);
+  cadreEtat.appendChild(grilleEtat);
+  cadreEtat.appendChild(el('label', { style: 'margin-top:10px;' }, 'États et afflictions en cours'));
+  cadreEtat.appendChild(champTextarea(etat.character, 'etats_afflictions', 'Blessures, malédictions, effets temporaires…', 70, { editableLocked: true }));
+  cadreEtat.appendChild(el('p', { class: 'hint' }, 'PV max et PP max se calculent automatiquement : chaque mineure, maîtrise d\'arme ou école de magie au palier Fort (≥30) ajoute sa contribution fixe, plus les points libres ci-dessus.'));
+  page.appendChild(cadreEtat);
+
+  const cadreEtatPerso = el('div', { class: 'panel' });
+  cadreEtatPerso.appendChild(el('h2', {}, 'État du personnage (selon % de PV actuel)'));
+  const listeEtatPerso = el('div', { id: 'etat-personnage-liste' });
+  R.ETATS_PERSONNAGE.forEach((e) => {
+    listeEtatPerso.appendChild(el('div', { class: 'etat-ligne', 'data-seuil': e.seuil }, `${e.seuil}% — ${e.nom}`));
+  });
+  cadreEtatPerso.appendChild(listeEtatPerso);
+  page.appendChild(cadreEtatPerso);
+
+  const cadreQuotas = el('div', { class: 'panel', id: 'bloc-quotas' });
+  page.appendChild(cadreQuotas);
+
+  rafraichirQuotas();
+  rafraichirEtatSection();
+}
+
+function construireBlocPortrait() {
+  const cadre = el('div', { class: 'panel' });
+  cadre.appendChild(el('h2', {}, 'Portrait'));
+  const cadreImg = el('div', { class: 'portrait-cadre' });
+  const inputFichier = el('input', { type: 'file', accept: 'image/*' });
+  verrouillable(inputFichier);
+  const statut = el('div', { class: 'hint', style: 'margin-top:6px;' });
+
+  async function rafraichirPortrait() {
+    cadreImg.innerHTML = '';
+    if (!etat.character.portrait_url) {
+      cadreImg.appendChild(el('span', { class: 'hint' }, 'Aucun portrait'));
+      return;
+    }
+    try {
+      const { url } = await apiGet(`/characters/${etat.character.id}/portrait-url`);
+      if (!url) { cadreImg.appendChild(el('span', { class: 'hint' }, 'Aucun portrait')); return; }
+      cadreImg.appendChild(el('img', { src: url, alt: 'Portrait' }));
+    } catch (e) {
+      cadreImg.appendChild(el('span', { class: 'hint' }, `Portrait indisponible : ${e.message}`));
+    }
+  }
+
+  inputFichier.addEventListener('change', async () => {
+    const fichier = inputFichier.files[0];
+    if (!fichier) return;
+    statut.textContent = 'Envoi en cours…';
+    try {
+      const ext = (fichier.name.split('.').pop() || 'jpg').toLowerCase();
+      const contentType = fichier.type || 'image/jpeg';
+      const { upload_url, key } = await apiPost(`/characters/${etat.character.id}/portrait-upload-url`, { extension: ext, content_type: contentType });
+      const resUpload = await fetch(upload_url, { method: 'PUT', body: fichier, headers: { 'Content-Type': contentType } });
+      if (!resUpload.ok) throw new Error(`Échec de l'envoi vers R2 (${resUpload.status})`);
+      etat.character.portrait_url = key;
+      const updated = await apiPut(`/characters/${etat.character.id}`, sansIdEtCampagne(etat.character));
+      Object.assign(etat.character, updated);
+      statut.textContent = 'Portrait mis à jour.';
+      rafraichirPortrait();
+    } catch (e) {
+      statut.textContent = `Échec de l'envoi : ${e.message}`;
+    }
+  });
+
+  cadre.appendChild(cadreImg);
+  cadre.appendChild(inputFichier);
+  cadre.appendChild(statut);
+  rafraichirPortrait();
+  return cadre;
+}
+
+/* ----- Caractéristiques (majeures, mineures, maîtrises, écoles) ----- */
+function construirePageCaracteristiques(page) {
+  page.innerHTML = '';
+  const R = window.AmbreRules;
+
+  const cadreMaj = el('div', { class: 'panel' });
+  cadreMaj.appendChild(el('h2', {}, 'Caractéristiques majeures'));
+  const tableMaj = el('table', { class: 'jet-table' });
+  tableMaj.appendChild(el('tr', {}, el('th', {}, 'Caractéristique'), el('th', {}, 'Valeur /100')));
+  R.MAJEURES_NOMS.forEach((nom) => {
+    const cle = 'carac_' + nom.toLowerCase();
+    const tr = el('tr');
+    tr.appendChild(el('td', {}, R.MAJEURES_LABELS[nom]));
+    tr.appendChild(el('td', {}, champNombre(etat.character, cle, {
+      min: 0, max: 100,
+      onExtra: () => { recalculerTout(); if (construireBlocEncombrement.recalculerActuel) construireBlocEncombrement.recalculerActuel(); rafraichirCalculateurTA(); },
+    })));
+    tableMaj.appendChild(tr);
+  });
+  cadreMaj.appendChild(tableMaj);
+  page.appendChild(cadreMaj);
+
+  const cadreMineures = el('div', { class: 'panel' });
+  cadreMineures.appendChild(el('h2', {}, 'Caractéristiques mineures'));
+  const grilleMineures = el('div', { class: 'field-row', style: 'align-items:start;' });
+  const colA = el('div'); const colB = el('div');
+  const minA = etat.mineures.filter((m) => R.MINEURES_COL1.includes(m.name));
+  const minB = etat.mineures.filter((m) => R.MINEURES_COL2.includes(m.name));
+  construireTableauJets({ conteneur: colA, titre: null, liste: minA, colonneLabel: 'Caractéristique', obtenirNom: (i) => i.name, majFn: majMineure, apresChangement: recalculerTout });
+  construireTableauJets({ conteneur: colB, titre: null, liste: minB, colonneLabel: 'Caractéristique', obtenirNom: (i) => i.name, majFn: majMineure, apresChangement: recalculerTout });
+  grilleMineures.appendChild(colA); grilleMineures.appendChild(colB);
+  cadreMineures.appendChild(grilleMineures);
+  cadreMineures.appendChild(el('p', { class: 'hint' }, 'Paliers : ≥30 = Fort · ≥20 = Medium · en dessous = Faible. Le palier Fort déclenche la contribution PV/PP automatique (onglet Identité). Le tableau des quotas est aussi visible dans l\'onglet Identité.'));
+  page.appendChild(cadreMineures);
+
+  construireTableauJets({ conteneur: page, titre: 'Maîtrise d\'armes', liste: etat.maitrises, colonneLabel: 'Catégorie', obtenirNom: (i) => i.category, majFn: majMaitrise, apresChangement: recalculerTout });
+  construireTableauJets({ conteneur: page, titre: 'Écoles de magie', liste: etat.ecoles, colonneLabel: 'École', obtenirNom: (i) => i.name, majFn: majEcole, apresChangement: recalculerTout });
+}
+
+/* ----- Combat (armes, armure, encombrement, TA, localisation) ----- */
+function construirePageCombat(page) {
+  page.innerHTML = '';
+  const R = window.AmbreRules;
+
+  construireListeArmes(page);
+  construireTableauArmure(page);
+  construireBlocEncombrement(page);
+  construireCalculateurTA(page);
+
+  const cadreLoc = el('div', { class: 'panel' });
+  cadreLoc.appendChild(el('h2', {}, 'Partie du corps touchée (jet de d20)'));
+  const grilleLoc = el('div', { class: 'field-row' });
+  const colA = el('div'); const colB = el('div');
+  R.LOCALISATION_COUPS.forEach(([n, nom]) => { (n <= 10 ? colA : colB).appendChild(el('div', { style: 'font-size:13px;padding:2px 0;' }, `${n} — ${nom}`)); });
+  grilleLoc.appendChild(colA); grilleLoc.appendChild(colB);
+  cadreLoc.appendChild(grilleLoc);
+  page.appendChild(cadreLoc);
+}
+
+function construireListeArmes(page) {
+  const R = window.AmbreRules;
+  const cadre = el('div', { class: 'panel' });
+  const entete = el('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;' });
+  entete.appendChild(el('h2', { style: 'margin:0;' }, 'Armes équipées'));
+  const btnAjout = el('button', { class: 'ghost' }, '+ arme');
+  verrouillable(btnAjout);
+  entete.appendChild(btnAjout);
+  cadre.appendChild(entete);
+  const table = el('table', { class: 'jet-table' });
+
+  function dessiner() {
+    table.innerHTML = '';
+    table.appendChild(el('tr', {}, el('th', {}, 'Équipée'), el('th', {}, 'Nom'), el('th', {}, 'Catégorie'), el('th', {}, 'Dégâts'), el('th', {}, 'Portée'), el('th', {}, 'Propriétés'), el('th', {}, 'Enc.'), el('th', {})));
+    etat.armes.forEach((item) => {
+      const tr = el('tr');
+
+      const cbEquip = el('input', { type: 'checkbox' });
+      cbEquip.checked = !!item.equipee;
+      verrouillable(cbEquip);
+      cbEquip.addEventListener('change', async () => {
+        if (cbEquip.checked) { await definirArmeEquipee(item); } else { await majArme(item, { equipee: false }); }
+        rafraichirCalculateurTA();
+      });
+      tr.appendChild(el('td', {}, cbEquip));
+
+      const inpNom = el('input', { type: 'text', value: item.name || '' });
+      verrouillable(inpNom);
+      inpNom.addEventListener('input', async () => { await majArme(item, { name: inpNom.value }); rafraichirCalculateurTASelectArme(); });
+      tr.appendChild(el('td', {}, inpNom));
+
+      const selectCat = el('select');
+      R.CATEGORIES_ARMES.forEach((c) => { const o = el('option', { value: c }, c); if (item.category === c) o.setAttribute('selected', 'true'); selectCat.appendChild(o); });
+      verrouillable(selectCat);
+      selectCat.addEventListener('change', async () => { await majArme(item, { category: selectCat.value }); });
+      tr.appendChild(el('td', {}, selectCat));
+
+      ['degats', 'portee', 'proprietes'].forEach((cle) => {
+        const inp = el('input', { type: 'text', value: item[cle] || '' });
+        verrouillable(inp);
+        inp.addEventListener('input', async () => { const c = {}; c[cle] = inp.value; await majArme(item, c); });
+        tr.appendChild(el('td', {}, inp));
+      });
+
+      const inpEnc = el('input', { type: 'number', value: item.encombrement || 0 });
+      verrouillable(inpEnc);
+      inpEnc.addEventListener('input', async () => { await majArme(item, { encombrement: Number(inpEnc.value) || 0 }); rafraichirCalculateurTA(); });
+      tr.appendChild(el('td', {}, inpEnc));
+
+      const btnSup = el('button', { class: 'danger' }, '✕');
+      verrouillable(btnSup);
+      btnSup.addEventListener('click', async () => {
+        await apiDelete(`/weapons/${item.id}`);
+        etat.armes = etat.armes.filter((a) => a.id !== item.id);
+        dessiner();
+        rafraichirCalculateurTASelectArme();
+      });
+      tr.appendChild(el('td', {}, btnSup));
+
+      table.appendChild(tr);
+    });
+  }
+  dessiner();
+  cadre.appendChild(table);
+  btnAjout.addEventListener('click', async () => {
+    const created = await apiPost(`/combatsheets/${etat.combatSheet.id}/weapons`, { name: 'Nouvelle arme', category: R.CATEGORIES_ARMES[0], degats: '', portee: '', proprietes: '', encombrement: 0, equipee: false });
+    etat.armes.push(created);
+    dessiner();
+    rafraichirCalculateurTASelectArme();
+  });
+  page.appendChild(cadre);
+}
+
+async function majArme(item, champs) {
+  Object.assign(item, champs);
+  const payload = {
+    name: item.name, category: item.category, degats: item.degats || '', portee: item.portee || '',
+    proprietes: item.proprietes || '', encombrement: Number(item.encombrement) || 0, equipee: !!item.equipee,
+  };
+  const updated = await apiPut(`/weapons/${item.id}`, payload);
+  Object.assign(item, updated);
+}
+async function definirArmeEquipee(item) {
+  for (const a of etat.armes) {
+    if (a.id !== item.id && a.equipee) { await majArme(a, { equipee: false }); }
+  }
+  await majArme(item, { equipee: true });
+  if (etat.combatSheet) { etat.combatSheet = await apiGet(`/combatsheets/${etat.combatSheet.id}`); }
+}
+
+const COLONNES_ARMURE = [
+  ['localisation', 'Localisation', 'text'], ['nom', 'Nom', 'text'], ['qualite', 'Qual.', 'text'], ['encombrement', 'Enc.', 'number'],
+  ['prot_contondant', 'Cont.', 'number'], ['prot_percant', 'Perç.', 'number'], ['prot_tranchant', 'Tranc.', 'number'], ['malus_discretion', 'Mal.Discr.', 'number'],
+  ['res_acide', 'Acide', 'number'], ['res_air', 'Air', 'number'], ['res_elec', 'Élec.', 'number'], ['res_feu', 'Feu', 'number'],
+  ['res_froid', 'Froid', 'number'], ['res_lumiere', 'Lum.', 'number'], ['res_son', 'Son', 'number'],
+];
+function construireTableauArmure(page) {
+  const cadre = el('div', { class: 'panel' });
+  const entete = el('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;' });
+  entete.appendChild(el('h2', { style: 'margin:0;' }, 'Armure — protections détaillées par pièce'));
+  const btnAjout = el('button', { class: 'ghost' }, '+ pièce');
+  verrouillable(btnAjout);
+  entete.appendChild(btnAjout);
+  cadre.appendChild(entete);
+  const table = el('table', { class: 'jet-table' });
+  const totalP = el('p', { style: 'font-weight:bold;margin-top:8px;font-size:13px;' });
+
+  function rafraichirTotal() {
+    const total = etat.armure.reduce((s, i) => s + (Number(i.malus_discretion) || 0), 0);
+    totalP.textContent = `Malus de Discrétion total : ${total}`;
+  }
+  function dessiner() {
+    table.innerHTML = '';
+    const trE = el('tr'); COLONNES_ARMURE.forEach(([, label]) => trE.appendChild(el('th', {}, label))); trE.appendChild(el('th', {})); table.appendChild(trE);
+    etat.armure.forEach((item) => {
+      const tr = el('tr');
+      COLONNES_ARMURE.forEach(([cle, , type]) => {
+        const inp = el('input', { type: type === 'number' ? 'number' : 'text', style: type === 'number' ? 'width:56px' : '', value: item[cle] ?? (type === 'number' ? 0 : '') });
+        verrouillable(inp);
+        inp.addEventListener('input', async () => {
+          const v = type === 'number' ? (Number(inp.value) || 0) : inp.value;
+          const champs = {}; champs[cle] = v;
+          await majArmure(item, champs);
+          if (cle === 'malus_discretion') rafraichirTotal();
+          if (cle === 'encombrement' && construireBlocEncombrement.recalculerActuel) construireBlocEncombrement.recalculerActuel();
+        });
+        tr.appendChild(el('td', {}, inp));
+      });
+      const btnSup = el('button', { class: 'danger' }, '✕');
+      verrouillable(btnSup);
+      btnSup.addEventListener('click', async () => {
+        await apiDelete(`/armor-pieces/${item.id}`);
+        etat.armure = etat.armure.filter((a) => a.id !== item.id);
+        dessiner(); rafraichirTotal();
+        if (construireBlocEncombrement.recalculerActuel) construireBlocEncombrement.recalculerActuel();
+      });
+      tr.appendChild(el('td', {}, btnSup));
+      table.appendChild(tr);
+    });
+  }
+  dessiner();
+  cadre.appendChild(table);
+  cadre.appendChild(totalP);
+  rafraichirTotal();
+  cadre.appendChild(el('p', { class: 'hint' }, 'Malus de Discrétion total = somme de la colonne Mal.Discr. sur toutes les pièces portées.'));
+  btnAjout.addEventListener('click', async () => {
+    const vide = { localisation: '', nom: '', qualite: '' };
+    COLONNES_ARMURE.forEach(([cle, , type]) => { if (type === 'number') vide[cle] = 0; });
+    const created = await apiPost(`/combatsheets/${etat.combatSheet.id}/armor-pieces`, vide);
+    etat.armure.push(created);
+    dessiner(); rafraichirTotal();
+    if (construireBlocEncombrement.recalculerActuel) construireBlocEncombrement.recalculerActuel();
+  });
+  page.appendChild(cadre);
+}
+async function majArmure(item, champs) {
+  Object.assign(item, champs);
+  const payload = {};
+  COLONNES_ARMURE.forEach(([cle, , type]) => { payload[cle] = type === 'number' ? (Number(item[cle]) || 0) : (item[cle] || ''); });
+  const updated = await apiPut(`/armor-pieces/${item.id}`, payload);
+  Object.assign(item, updated);
+}
+
+function construireBlocEncombrement(page) {
+  const R = window.AmbreRules;
+  const cadre = el('div', { class: 'panel' });
+  cadre.appendChild(el('h2', {}, 'Encombrement total (calculé)'));
+  const grille = el('div', { class: 'field-row3' });
+  const selectCat = el('select');
+  ['Légère', 'Médium', 'Intermédiaire', 'Lourde'].forEach((c) => selectCat.appendChild(el('option', { value: c }, c)));
+  selectCat.value = etat.categorieArmure;
+  verrouillable(selectCat);
+  const selectStat = el('select');
+  ['Force', 'Agilite'].forEach((c) => selectStat.appendChild(el('option', { value: c }, R.MAJEURES_LABELS[c])));
+  selectStat.value = (selectCat.value === 'Légère' || selectCat.value === 'Médium') ? 'Agilite' : 'Force';
+  verrouillable(selectStat);
+  const resultat = el('span', { style: 'font-weight:bold;' });
+
+  const champCat = el('div', { class: 'field' }); champCat.appendChild(el('label', {}, 'Catégorie d\'armure')); champCat.appendChild(selectCat);
+  const champStat = el('div', { class: 'field' }); champStat.appendChild(el('label', {}, 'Caractéristique de réduction')); champStat.appendChild(selectStat);
+  const champRes = el('div', { class: 'field' }); champRes.appendChild(el('label', {}, 'Malus net calculé')); champRes.appendChild(resultat);
+  grille.appendChild(champCat); grille.appendChild(champStat); grille.appendChild(champRes);
+  cadre.appendChild(grille);
+  cadre.appendChild(el('p', { class: 'hint' }, 'Total = somme de la colonne Enc. du tableau d\'armure ci-dessus, réduit selon la table p.68. Légère/Médium se réduisent par l\'Agilité, Intermédiaire/Lourde par la Force. Écrit dans la fiche de combat (lu par le Cadran).'));
+
+  async function recalculer() {
+    const totalBrut = etat.armure.reduce((s, p) => s + (Number(p.encombrement) || 0), 0);
+    const table = selectStat.value === 'Force' ? R.REDUCTION_FORCE : R.REDUCTION_AGILITE;
+    const statVal = Number(etat.character['carac_' + selectStat.value.toLowerCase()]) || 0;
+    const net = R.appliquerReductionEncombrement(totalBrut, statVal, table);
+    etat.categorieArmure = selectCat.value;
+    const netArrondi = Math.round(net);
+    resultat.textContent = `${totalBrut} brut → ${netArrondi} net`;
+    if (etat.combatSheet) {
+      etat.combatSheet.encombrement = netArrondi;
+      try {
+        etat.combatSheet = await apiPut(`/combatsheets/${etat.combatSheet.id}`, sansIdCombatSheet(etat.combatSheet));
+      } catch (e) { /* pas bloquant pour l'affichage si la sauvegarde échoue ponctuellement */ }
+    }
+    rafraichirCalculateurTA();
+  }
+  selectCat.addEventListener('change', () => {
+    selectStat.value = (selectCat.value === 'Légère' || selectCat.value === 'Médium') ? 'Agilite' : 'Force';
+    recalculer();
+  });
+  selectStat.addEventListener('change', recalculer);
+  recalculer();
+  construireBlocEncombrement.recalculerActuel = recalculer;
+  page.appendChild(cadre);
+}
+
+function construireCalculateurTA(page) {
+  const R = window.AmbreRules;
+  const cadre = el('div', { class: 'panel' });
+  cadre.appendChild(el('h2', {}, 'Calculateur de Temps d\'Action'));
+  const grille = el('div', { class: 'field-row3' });
+  const selectCategorie = el('select');
+  R.CATEGORIES_ARMES.forEach((c) => selectCategorie.appendChild(el('option', { value: c }, c)));
+  const selectCar1 = el('select'); const selectCar2 = el('select');
+  [selectCar1, selectCar2].forEach((s) => {
+    s.appendChild(el('option', { value: '' }, '—'));
+    R.MAJEURES_NOMS.forEach((n) => s.appendChild(el('option', { value: n }, R.MAJEURES_LABELS[n])));
+  });
+  verrouillable(selectCategorie); verrouillable(selectCar1); verrouillable(selectCar2);
+  const champ1 = el('div', { class: 'field' }); champ1.appendChild(el('label', {}, 'Type d\'arme/technique')); champ1.appendChild(selectCategorie);
+  const champ2 = el('div', { class: 'field' }); champ2.appendChild(el('label', {}, 'Caractéristique 1')); champ2.appendChild(selectCar1);
+  const champ3 = el('div', { class: 'field' }); champ3.appendChild(el('label', {}, 'Caractéristique 2')); champ3.appendChild(selectCar2);
+  grille.appendChild(champ1); grille.appendChild(champ2); grille.appendChild(champ3);
+  cadre.appendChild(grille);
+
+  const champArme = el('div', { class: 'field' });
+  champArme.appendChild(el('label', {}, 'Arme utilisée (pour son malus d\'encombrement)'));
+  const selectArme = el('select');
+  verrouillable(selectArme);
+  function reconstruireOptionsArme() {
+    const valeurActuelle = selectArme.value;
+    selectArme.innerHTML = '';
+    selectArme.appendChild(el('option', { value: '' }, '— aucune —'));
+    etat.armes.forEach((a) => selectArme.appendChild(el('option', { value: String(a.id) }, a.name || '(sans nom)')));
+    selectArme.value = valeurActuelle;
+  }
+  reconstruireOptionsArme();
+  champArme.appendChild(selectArme);
+  cadre.appendChild(champArme);
+
+  const resultat = el('div', { style: 'margin-top:10px;font-size:14px;' });
+  function recalculer() {
+    const v1 = Number(etat.character['carac_' + (selectCar1.value || '').toLowerCase()]) || 0;
+    const v2 = Number(etat.character['carac_' + (selectCar2.value || '').toLowerCase()]) || 0;
+    const malusArmure = etat.combatSheet ? (Number(etat.combatSheet.encombrement) || 0) : 0;
+    const armeChoisie = etat.armes.find((a) => String(a.id) === selectArme.value);
+    const malusArme = armeChoisie ? (Number(armeChoisie.encombrement) || 0) : 0;
+    const scoreNet = Math.floor((v1 + v2) / 2) - malusArmure - malusArme;
+    const tranche = R.trouverTranche(scoreNet);
+    const paire = tranche.d[selectCategorie.value];
+    resultat.innerHTML = `Malus armure (auto) : <b>${malusArmure}</b> · Malus arme : <b>${malusArme}</b><br>` +
+      `Score net : <b>${scoreNet}</b> · Tranche : <b>${tranche.nom}</b>` +
+      (paire ? ` · <b>${paire[0]} dés / ${paire[1]} Temps d'Action</b>` : ' · catégorie non trouvée dans cette tranche');
+  }
+  [selectCategorie, selectCar1, selectCar2, selectArme].forEach((s) => s.addEventListener('change', recalculer));
+  recalculer();
+  cadre.appendChild(resultat);
+  cadre.appendChild(el('p', { class: 'hint' }, 'Score net = (Car1 + Car2) ÷ 2 arrondi à l\'entier inférieur, moins le malus d\'armure (calculé ci-dessus) et le malus de l\'arme choisie.'));
+  page.appendChild(cadre);
+  rafraichirCalculateurTA = recalculer;
+  rafraichirCalculateurTASelectArme = reconstruireOptionsArme;
+}
+
+/* ----- Magie (champs, compétences, capacité unique) ----- */
+function construirePageMagie(page) {
+  page.innerHTML = '';
+  const cadreMagie = el('div', { class: 'panel' });
+  cadreMagie.appendChild(el('h2', {}, 'Magie'));
+  const grille = el('div', { class: 'field-row3' });
+  [['magie_famille', 'Famille'], ['magie_type', 'Type'], ['magie_aspect', 'Aspect(s)']].forEach(([cle, label]) => {
+    const champ = el('div', { class: 'field' });
+    champ.appendChild(el('label', {}, label));
+    champ.appendChild(champTexte(etat.character, cle));
+    grille.appendChild(champ);
+  });
+  cadreMagie.appendChild(grille);
+  page.appendChild(cadreMagie);
+
+  const cadreCapacite = el('div', { class: 'panel' });
+  cadreCapacite.appendChild(el('h2', {}, 'Capacité unique'));
+  cadreCapacite.appendChild(champTextarea(etat.character, 'capacite_unique', 'Description de la capacité unique définie avec le MJ…', 110));
+  page.appendChild(cadreCapacite);
+
+  construireListeCompetences(page);
+}
+function construireListeCompetences(page) {
+  construireListeGenerique({
+    conteneur: page, titre: 'Compétences spéciales & postures', liste: etat.competences,
+    champs: [['name', 'Nom', 'text'], ['description', 'Description', 'text']],
+    creerItem: () => apiPost(`/characters/${etat.character.id}/special-skills`, { name: '', description: '' }),
+    majItem: (item) => apiPut(`/special-skills/${item.id}`, { name: item.name || '', description: item.description || '' }),
+    supprimerItem: (item) => apiDelete(`/special-skills/${item.id}`),
+    libelleAjout: '+ compétence',
+  });
+}
+
+/* ----- Sorts & Techniques ----- */
+function construirePageSorts(page) {
+  page.innerHTML = '';
+  const cadre = el('div', { class: 'panel' });
+  const entete = el('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;' });
+  entete.appendChild(el('h2', { style: 'margin:0;' }, 'Sorts & Techniques'));
+  const btnAjout = el('button', { class: 'ghost' }, '+ sort');
+  verrouillable(btnAjout);
+  entete.appendChild(btnAjout);
+  cadre.appendChild(entete);
+  const grille = el('div', { style: 'display:flex;flex-wrap:wrap;gap:12px;' });
+
+  function dessiner() {
+    grille.innerHTML = '';
+    etat.sorts.forEach((item) => {
+      const carte = el('div', { class: 'panel', style: 'flex:1;min-width:260px;margin-bottom:0;' });
+      const inpNom = el('input', { type: 'text', value: item.name || '', placeholder: 'Nom du sort', style: 'font-weight:bold;margin-bottom:8px;' });
+      verrouillable(inpNom);
+      inpNom.addEventListener('input', async () => { await majSort(item, { name: inpNom.value }); });
+      carte.appendChild(inpNom);
+
+      const meta = el('div', { class: 'field-row' });
+      [['ecole', 'École'], ['cout', 'Coût PP'], ['portee', 'Portée'], ['duree', 'Durée']].forEach(([cle, label]) => {
+        const champ = el('div', { class: 'field' });
+        champ.appendChild(el('label', {}, label));
+        const inp = el('input', { type: 'text', value: item[cle] || '' });
+        verrouillable(inp);
+        inp.addEventListener('input', async () => { const c = {}; c[cle] = inp.value; await majSort(item, c); });
+        champ.appendChild(inp);
+        meta.appendChild(champ);
+      });
+      carte.appendChild(meta);
+
+      const desc = el('textarea', { style: 'min-height:70px;', placeholder: 'Effets, conditions…' });
+      desc.value = item.description || '';
+      verrouillable(desc);
+      desc.addEventListener('input', async () => { await majSort(item, { description: desc.value }); });
+      carte.appendChild(desc);
+
+      const btnSup = el('button', { class: 'danger', style: 'margin-top:8px;' }, 'Supprimer ce sort');
+      verrouillable(btnSup);
+      btnSup.addEventListener('click', async () => {
+        await apiDelete(`/spells/${item.id}`);
+        etat.sorts = etat.sorts.filter((s) => s.id !== item.id);
+        dessiner();
+      });
+      carte.appendChild(btnSup);
+      grille.appendChild(carte);
+    });
+  }
+  dessiner();
+  cadre.appendChild(grille);
+  btnAjout.addEventListener('click', async () => {
+    const created = await apiPost(`/characters/${etat.character.id}/spells`, { name: '', ecole: '', cout: '', portee: '', duree: '', description: '' });
+    etat.sorts.push(created);
+    dessiner();
+  });
+  page.appendChild(cadre);
+}
+async function majSort(item, champs) {
+  Object.assign(item, champs);
+  const payload = { name: item.name || '', ecole: item.ecole || '', cout: item.cout || '', portee: item.portee || '', duree: item.duree || '', description: item.description || '' };
+  const updated = await apiPut(`/spells/${item.id}`, payload);
+  Object.assign(item, updated);
+}
+
+/* ----- Compagnons & Notes (compagnons, inventaire, contacts, notes) ----- */
+function construirePageNotes(page) {
+  page.innerHTML = '';
+  construireListeGenerique({
+    conteneur: page, titre: 'Compagnons & Montures', liste: etat.compagnons,
+    champs: [['name', 'Nom', 'text'], ['type_', 'Type', 'text'], ['notes', 'Notes', 'text']],
+    creerItem: () => apiPost(`/characters/${etat.character.id}/companions`, { name: '', type_: '', notes: '' }),
+    majItem: (item) => apiPut(`/companions/${item.id}`, { name: item.name || '', type_: item.type_ || '', notes: item.notes || '' }),
+    supprimerItem: (item) => apiDelete(`/companions/${item.id}`),
+    libelleAjout: '+ compagnon',
+  });
+  construireListeGenerique({
+    conteneur: page, titre: 'Inventaire', liste: etat.inventaire,
+    champs: [['name', 'Objet', 'text'], ['quantite', 'Qté', 'number'], ['notes', 'Notes', 'text']],
+    creerItem: () => apiPost(`/characters/${etat.character.id}/inventory`, { name: '', quantite: 1, notes: '' }),
+    majItem: (item) => apiPut(`/inventory/${item.id}`, { name: item.name || '', quantite: Number(item.quantite) || 0, notes: item.notes || '' }),
+    supprimerItem: (item) => apiDelete(`/inventory/${item.id}`),
+    libelleAjout: '+ objet',
+  });
+  construireListeGenerique({
+    conteneur: page, titre: 'Contacts', liste: etat.contacts,
+    champs: [['name', 'Nom', 'text'], ['notes', 'Notes', 'text']],
+    creerItem: () => apiPost(`/characters/${etat.character.id}/contacts`, { name: '', notes: '' }),
+    majItem: (item) => apiPut(`/contacts/${item.id}`, { name: item.name || '', notes: item.notes || '' }),
+    supprimerItem: (item) => apiDelete(`/contacts/${item.id}`),
+    libelleAjout: '+ contact',
+  });
+
+  const cadreNotes = el('div', { class: 'panel' });
+  cadreNotes.appendChild(el('h2', {}, 'Notes de campagne'));
+  cadreNotes.appendChild(champTextarea(etat.character, 'notes', 'Indices, objectifs, secrets, souvenirs de session…', 160));
+  page.appendChild(cadreNotes);
+}
+
+/* ---------- 10. CALCULS TRANSVERSES ---------- */
+
+function rafraichirQuotas() {
+  const conteneur = document.getElementById('bloc-quotas');
+  if (!conteneur) return;
+  const R = window.AmbreRules;
+  conteneur.innerHTML = '';
+  conteneur.appendChild(el('h2', {}, 'Quotas de répartition (mineures + armes + écoles)'));
+  const compte = R.compterUtilisationQuotas([etat.mineures, etat.maitrises, etat.ecoles]);
+  R.QUOTAS_PALIERS.forEach((q) => {
+    const utilise = compte[q.valeur] || 0;
+    const depasse = utilise > q.nb;
+    const ligne = el('div', { class: 'quota-ligne' });
+    ligne.appendChild(el('span', {}, `Valeur ${q.valeur} : ${utilise} / ${q.nb} créneaux`));
+    const barre = el('div', { class: 'quota-barre' + (depasse ? ' depasse' : '') });
+    barre.appendChild(el('div', { style: `width:${Math.min(100, (utilise / q.nb) * 100)}%` }));
+    ligne.appendChild(barre);
+    if (depasse) ligne.appendChild(el('span', { class: 'quota-alerte' }, '⚠ dépassé'));
+    conteneur.appendChild(ligne);
+  });
+}
+
+function rafraichirEtatSection() {
+  const R = window.AmbreRules;
+  const conteneur = document.getElementById('etat-personnage-liste');
+  if (conteneur) {
+    const max = Number(etat.character.pv_max) || 0;
+    const ratio = max > 0 ? Math.round(((Number(etat.character.pv_actuel) || 0) / max) * 100) : 100;
+    const seuilActif = R.etatSelonRatio(ratio);
+    conteneur.querySelectorAll('.etat-ligne').forEach((l) => { l.classList.toggle('actif', Number(l.dataset.seuil) === seuilActif); });
+  }
+  const pvP = document.getElementById('pv-max-affiche');
+  if (pvP) pvP.textContent = `PV max calculé : ${etat.character.pv_max || 0}`;
+  const ppP = document.getElementById('pp-max-affiche');
+  if (ppP) ppP.textContent = `PP max calculé : ${etat.character.pp_max || 0}`;
+}
+
+function recalculerTout() {
+  const R = window.AmbreRules;
+  let sommePV = 0; let sommePP = 0;
+  etat.mineures.forEach((m) => {
+    if (R.palierMineure(m.value) === 'Fort') {
+      const t = R.TABLE_PV_PP_MINEURE[m.name];
+      if (t) { sommePV += t[0]; sommePP += t[1]; }
+    }
+  });
+  etat.ecoles.forEach((m) => {
+    if (R.palierMineure(m.value) === 'Fort') {
+      const t = R.TABLE_PV_PP_ECOLE[m.name];
+      if (t) { sommePV += t[0]; sommePP += t[1]; }
+    }
+  });
+  etat.maitrises.forEach((m) => {
+    if (R.palierMineure(m.value) === 'Fort') {
+      const t = R.TABLE_PV_PP_ARME[m.category];
+      if (t) { sommePV += t[0]; sommePP += t[1]; }
+    }
+  });
+  etat.character.pv_max = sommePV + (Number(etat.character.pv_libres) || 0);
+  etat.character.pp_max = sommePP + (Number(etat.character.pp_libres) || 0);
+  sauvegarderPersonnage();
+  rafraichirQuotas();
+  rafraichirEtatSection();
+}
+
+/* ---------- 11. DÉMARRAGE ---------- */
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('btn-nouveau-perso').addEventListener('click', creerNouveauPersonnage);
+  document.getElementById('btn-changer-perso').addEventListener('click', retourSelecteur);
+  document.getElementById('btn-verrou').addEventListener('click', () => {
+    const root = document.getElementById('ecran-fiche');
+    const verrouille = window.AmbreLock.toggleLock(root);
+    document.getElementById('btn-verrou').textContent = verrouille ? 'Déverrouiller la fiche' : 'Verrouiller la fiche';
+  });
+  document.getElementById('btn-effacer-jets').addEventListener('click', () => {
+    window.AmbreDice.clearAllRolls(document.getElementById('ecran-fiche'));
+  });
+  chargerSelecteurPersonnages();
+});
+</script>
+</body>
+</html>

@@ -616,10 +616,12 @@ function renderRoundControls(){
   const inPicking = state.phase==='tranches' || state.phase==='picking';
   let html = '';
 
-  html += `<div class="btnrow" style="margin-bottom:10px;">
+  if(isMJ){
+    html += `<div class="btnrow" style="margin-bottom:10px;">
     <button class="${playerMode?'primary':'ghost'}" onclick="togglePlayerMode()">${playerMode? '👁 Mode MJ (tout visible)' : '🙈 Activer le mode joueurs'}</button>
   </div>
   <div class="hint" style="margin-bottom:10px;">${playerMode? "Les combattants marqués 🙈 ont leurs stats et seuils masqués à l'écran." : "Mode MJ : tout est visible, y compris les combattants marqués 🙈."}</div>`;
+  }
 
   if(state.phase==='setup'){
     html += `<div class="hint">Ajoute au moins deux combattants (un par camp), puis lance les Tranches pour ouvrir le round.</div>`;
@@ -666,7 +668,10 @@ function setViewMode(mode){ viewMode = mode; render(); }
 // Différenciation MJ/joueurs par URL : ?role=MJ donne la vue complète,
 // tout le reste (pas de paramètre, ou valeur différente) masque par défaut —
 // un lien mal recopié tombe du bon côté (masqué) plutôt que tout montrer.
-let playerMode = new URLSearchParams(location.search).get('role') !== 'MJ';
+// isMJ conditionne le DROIT de voir/basculer le bouton ; playerMode est
+// l'état d'affichage courant (peut être basculé par le MJ pour prévisualiser).
+const isMJ = new URLSearchParams(location.search).get('role') === 'MJ';
+let playerMode = !isMJ;
 function togglePlayerMode(){ playerMode = !playerMode; render(); }
 function maskVal(val, entity){ return (playerMode && entity && entity.hidden) ? '???' : val; }
 function toggleHidden(id){ const c=state.combatants.find(x=>x.id===id); if(c){ c.hidden=!c.hidden; render(); } }

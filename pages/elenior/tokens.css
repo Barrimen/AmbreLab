@@ -1,0 +1,29 @@
+/* =========================================================================
+   pages/elenior/tokens.css
+   Variables partagées par les apps de l'univers Elénior (Cadran, feuille de
+   personnage, futures apps de cette campagne). Thème "grimoire alchimique".
+   Ne PAS remonter ce fichier dans pages/shared/ : ces couleurs sont propres
+   à Elénior, pas à la plateforme AmbreLab en général (cf. décision du
+   27/07/2026 — d'autres univers auront leur propre tokens.css).
+   ========================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root{
+  --ink:#12151B;
+  --ink-2:#1A1F27;
+  --ink-3:#232A34;
+  --parchment:#E9DFC4;
+  --parchment-dim:#B9AF94;
+  --copper:#C08442;
+  --copper-dim:#8A5F30;
+  --verdigris:#5F9484;
+  --blood:#A8404B;
+  --gold:#CBA135;
+  --line: rgba(233,223,196,0.14);
+  /* résultats de jets : sémantique dédiée, distincte des couleurs d'ambiance */
+  --res-miss:#8B8672;
+  --res-pending:#E8B84B;
+  --res-success:#5FCB94;
+  --res-impact:#FF4D4D;
+}

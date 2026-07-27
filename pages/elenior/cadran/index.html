@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Le Cadran des Trente Temps</title>
+<link rel="stylesheet" href="../tokens.css">
+<style>
+/* Variables de couleurs/polices Elénior : voir pages/elenior/tokens.css
+   (chargé via <link> ci-dessous, plus haut dans <head>) */
+
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--ink);color:var(--parchment);}
+body{
+  font-family:'Spectral',serif;
+  background:
+    radial-gradient(1200px 600px at 15% -10%, rgba(192,132,66,0.08), transparent 60%),
+    radial-gradient(1000px 500px at 110% 10%, rgba(95,148,132,0.08), transparent 60%),
+    var(--ink);
+  min-height:100vh;
+  padding:28px 20px 60px;
+}
+
+h1,h2,h3{font-family:'Cinzel',serif; letter-spacing:0.03em; margin:0;}
+.mono{font-family:'IBM Plex Mono',monospace;}
+
+.wrap{max-width:1180px;margin:0 auto;}
+
+/* ---------- Header ---------- */
+header.top{
+  display:flex; align-items:baseline; justify-content:space-between;
+  border-bottom:1px solid var(--line); padding-bottom:16px; margin-bottom:22px;
+  flex-wrap:wrap; gap:10px;
+}
+header.top h1{font-size:26px; color:var(--parchment); font-weight:700;}
+header.top h1 span{color:var(--copper);}
+.subtitle{font-size:12.5px; color:var(--parchment-dim); font-style:italic; margin-top:4px;}
+.round-badge{
+  font-family:'Cinzel',serif; font-size:13px; color:var(--gold);
+  border:1px solid var(--gold); padding:6px 14px; border-radius:2px;
+  letter-spacing:0.08em; text-transform:uppercase; white-space:nowrap;
+}
+
+/* ---------- Layout ---------- */
+.grid{display:grid; grid-template-columns: 340px 1fr; gap:22px;}
+@media (max-width:920px){ .grid{grid-template-columns:1fr;} }
+
+.panel{
+  background:linear-gradient(180deg, var(--ink-2), var(--ink-3));
+  border:1px solid var(--line);
+  border-radius:6px;
+  padding:16px 16px 18px;
+}
+.panel + .panel{margin-top:18px;}
+.panel h2{font-size:15px; color:var(--copper); margin-bottom:12px; text-transform:uppercase; letter-spacing:0.06em;}
+.panel h2 small{color:var(--parchment-dim); font-family:'Spectral'; text-transform:none; letter-spacing:0; font-style:italic; font-size:11.5px;}
+
+/* ---------- Buttons ---------- */
+button{
+  font-family:'Cinzel',serif; font-size:11.5px; letter-spacing:0.05em; text-transform:uppercase;
+  background:transparent; color:var(--parchment); border:1px solid var(--copper-dim);
+  padding:9px 14px; border-radius:2px; cursor:pointer; transition:all .15s ease;
+}
+button:hover{background:rgba(192,132,66,0.12); border-color:var(--copper);}
+button.primary{background:var(--copper); color:var(--ink); border-color:var(--copper); font-weight:700;}
+button.primary:hover{background:#D69856;}
+button.ghost{border-color:var(--line); color:var(--parchment-dim);}
+button.danger{border-color:var(--blood); color:var(--blood);}
+button.danger:hover{background:rgba(168,64,75,0.15);}
+button:disabled{opacity:0.35; cursor:not-allowed;}
+button:focus-visible, input:focus-visible, select:focus-visible{outline:2px solid var(--gold); outline-offset:1px;}
+.btnrow{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;}
+
+/* ---------- Forms ---------- */
+label{display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--parchment-dim); margin-bottom:4px;}
+input,select{
+  width:100%; background:var(--ink); border:1px solid var(--line); color:var(--parchment);
+  padding:7px 8px; border-radius:2px; font-family:'Spectral'; font-size:13.5px;
+}
+select{font-family:'Spectral';}
+.field{margin-bottom:10px;}
+.field-row{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+.field-row3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;}
+.hint{font-size:11px; color:var(--parchment-dim); font-style:italic; margin-top:3px; line-height:1.4;}
+
+/* ---------- Combatant cards ---------- */
+.combatant-card{
+  border:1px solid var(--line); border-radius:4px; padding:10px 12px; margin-bottom:10px;
+  background:rgba(0,0,0,0.15); position:relative;
+}
+.combatant-card.dead{opacity:0.4;}
+.combatant-card .ctop{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;}
+.cname{font-family:'Cinzel'; font-size:13.5px;}
+.tag{font-size:9.5px; text-transform:uppercase; letter-spacing:0.05em; padding:2px 6px; border-radius:2px;}
+.tag.allie{background:rgba(95,148,132,0.2); color:var(--verdigris); border:1px solid var(--verdigris);}
+.tag.adversaire{background:rgba(168,64,75,0.2); color:var(--blood); border:1px solid var(--blood);}
+
+.pv-flask{height:9px; background:var(--ink); border:1px solid var(--line); border-radius:5px; overflow:hidden; margin:6px 0 4px;}
+.pv-fill{height:100%; background:linear-gradient(90deg, var(--blood), var(--gold)); transition:width .4s ease;}
+.pv-fill.masked{background:repeating-linear-gradient(45deg, rgba(185,175,148,0.22), rgba(185,175,148,0.22) 6px, rgba(185,175,148,0.4) 6px, rgba(185,175,148,0.4) 12px);}
+.pv-label{font-size:11px; color:var(--parchment-dim); display:flex; justify-content:space-between;}
+.malus-note{font-size:10.5px; color:var(--copper); margin-top:2px;}
+
+.mini-actions{display:flex; gap:6px; margin-top:8px;}
+.mini-actions button{padding:5px 9px; font-size:10px;}
+
+/* ---------- Dial ---------- */
+.dial-wrap{display:flex; justify-content:center; padding:6px 0 4px;}
+.dial-legend{display:flex; flex-wrap:wrap; gap:14px; justify-content:center; margin-top:12px; font-size:13.5px; color:var(--parchment-dim);}
+.legend-dot{display:inline-block; width:14px; height:14px; border-radius:50%; margin-right:7px; vertical-align:middle; border:1px solid rgba(0,0,0,0.3);}
+.legend-dot.adversaire{border-radius:2px; transform:rotate(45deg);}
+.view-toggle{display:flex; gap:6px; justify-content:center; margin-bottom:10px;}
+.view-toggle button.active{background:rgba(192,132,66,0.18); border-color:var(--copper); color:var(--copper);}
+
+/* ---------- Frise linéaire (vue plane) ---------- */
+.linear-frise{position:relative; height:150px; margin:20px 10px 10px;}
+.lf-axis{position:absolute; left:0; right:0; top:70px; height:2px; background:var(--line);}
+.lf-tick{position:absolute; top:63px; width:1px; height:16px; background:var(--line);}
+.lf-tick.major{background:var(--copper); width:2px;}
+.lf-tick-label{position:absolute; top:82px; font-family:'IBM Plex Mono'; font-size:11px; color:var(--parchment-dim); transform:translateX(-50%);}
+.lf-token{position:absolute; transform:translate(-50%,-50%); display:flex; flex-direction:column; align-items:center; gap:3px;}
+.lf-token .dot{width:22px; height:22px; border-radius:50%; border:2px solid var(--ink); box-shadow:0 0 0 1px rgba(0,0,0,0.4);}
+.lf-token.adversaire .dot{border-radius:4px; transform:rotate(45deg);}
+.lf-token .lbl{font-size:10.5px; color:var(--parchment-dim); white-space:nowrap; font-family:'IBM Plex Mono';}
+.lf-token.current .dot{box-shadow:0 0 0 3px var(--gold);}
+
+/* ---------- Timeline list ---------- */
+.timeline-list{display:flex; flex-direction:column; gap:6px; margin-top:14px;}
+.tl-item{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  border:1px solid var(--line); border-radius:3px; padding:8px 10px; font-size:13px;
+  background:rgba(0,0,0,0.12);
+}
+.tl-item.current{border-color:var(--gold); background:rgba(203,161,53,0.08);}
+.tl-item.done{opacity:0.45;}
+.tl-t{font-family:'IBM Plex Mono'; color:var(--gold); font-size:12px; width:34px;}
+
+/* ---------- Log ---------- */
+.log{
+  max-height:260px; overflow-y:auto; font-size:12.5px; line-height:1.55;
+  display:flex; flex-direction:column-reverse; gap:2px;
+  border-top:1px dashed var(--line); padding-top:10px; margin-top:10px;
+}
+.log-entry{padding:4px 0; border-bottom:1px solid rgba(233,223,196,0.05);}
+.log-entry .lt{color:var(--gold); font-family:'IBM Plex Mono'; margin-right:6px;}
+.log-impact{color:var(--res-impact); font-weight:600;}
+.log-miss{color:var(--res-miss);}
+.log-success{color:var(--res-success);}
+.log-info{color:var(--copper);}
+
+/* ---------- Resolution box ---------- */
+.resolve-box{border:1px solid var(--copper-dim); border-radius:5px; padding:18px 20px; margin-top:16px; background:rgba(192,132,66,0.06);}
+.resolve-box h3{font-size:17px; color:var(--copper); margin-bottom:12px;}
+.threshold-line{display:flex; justify-content:space-between; align-items:center; font-size:14.5px; padding:7px 0; border-bottom:1px dashed var(--line);}
+.threshold-line b{font-family:'IBM Plex Mono'; color:var(--gold); font-size:18px;}
+.roll-row{display:flex; gap:10px; align-items:center; margin-top:14px; flex-wrap:wrap;}
+.roll-label{font-size:11.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--parchment-dim); width:100%;}
+.roll-row input{
+  width:110px; font-size:26px; font-family:'IBM Plex Mono'; text-align:center; font-weight:600;
+  padding:10px 6px; color:var(--gold); border:2px solid var(--copper-dim); background:var(--ink);
+}
+.roll-row button{padding:12px 18px; font-size:12.5px;}
+.badge-result{font-family:'Cinzel'; font-size:15px; padding:6px 14px; border-radius:3px; font-weight:700; letter-spacing:0.03em;}
+.badge-rate{background:rgba(139,134,114,0.18); color:var(--res-miss); border:1px solid var(--res-miss);}
+.badge-pending{background:rgba(232,184,75,0.18); color:var(--res-pending); border:1px solid var(--res-pending);}
+.badge-success{background:rgba(95,203,148,0.18); color:var(--res-success); border:1px solid var(--res-success);}
+.badge-impact{background:rgba(255,77,77,0.22); color:var(--res-impact); border:1px solid var(--res-impact); box-shadow:0 0 14px rgba(255,77,77,0.35);}
+
+/* ---------- Dice picker ---------- */
+.dice-pick{display:flex; flex-wrap:wrap; gap:10px; margin-top:10px;}
+.dice-chip{
+  border:2px solid var(--line); border-radius:5px; padding:12px 18px; font-family:'IBM Plex Mono'; font-size:19px; font-weight:500;
+  cursor:pointer; user-select:none; background:rgba(0,0,0,0.15); min-width:78px; text-align:center;
+  transition:all .12s ease;
+}
+.dice-chip:hover{border-color:var(--parchment-dim);}
+.dice-chip.kept{border-color:var(--gold); color:var(--gold); background:rgba(203,161,53,0.14); box-shadow:0 0 0 1px var(--gold) inset;}
+.dice-chip.reco::after{content:" ★"; color:var(--verdigris);}
+
+.empty-state{color:var(--parchment-dim); font-style:italic; font-size:13px; text-align:center; padding:20px 10px;}
+
+.modal-overlay{position:fixed; inset:0; background:rgba(0,0,0,0.6); display:flex; align-items:flex-start; justify-content:center; padding:40px 16px; overflow-y:auto; z-index:50;}
+.modal{background:var(--ink-2); border:1px solid var(--copper-dim); border-radius:6px; padding:20px; max-width:480px; width:100%;}
+.modal h2{margin-bottom:14px;}
+.close-x{position:absolute; top:10px; right:14px; cursor:pointer; color:var(--parchment-dim); font-size:18px;}
+
+footer.note{text-align:center; color:var(--parchment-dim); font-size:11px; margin-top:30px; font-style:italic; line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>Le <span>Cadran</span> des Trente Temps</h1>
+      <div class="subtitle">Compagnon de jeu — Les Compagnons de l'Infortune · système de combat</div>
+    </div>
+    <div class="round-badge" id="roundBadge">Round 1 · Préparation</div>
+  </header>
+
+  <div class="grid">
+
+    <!-- ===================== LEFT COLUMN ===================== -->
+    <div>
+      <div class="panel">
+        <h2>Combattants <small id="combatantsHint"></small></h2>
+        <div id="combatantList"></div>
+        <div class="btnrow">
+          <button class="primary" id="btnAddCombatant">+ Ajouter un combattant</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Round</h2>
+        <div id="roundControls"></div>
+      </div>
+    </div>
+
+    <!-- ===================== RIGHT COLUMN ===================== -->
+    <div>
+      <div class="panel">
+        <h2>Frise du round <small>1 → 30, temps engagés en surbrillance</small></h2>
+        <div class="view-toggle">
+          <button id="btnViewDial" onclick="setViewMode('dial')">☉ Cadran</button>
+          <button id="btnViewLinear" onclick="setViewMode('linear')">— Frise linéaire</button>
+        </div>
+        <div class="dial-wrap" id="dialWrap"></div>
+        <div class="dial-legend" id="dialLegend"></div>
+        <div id="timelinePanel"></div>
+        <div id="resolveBoxHost"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Journal de combat</h2>
+        <div class="log" id="logHost"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer class="note">
+    Prototype de travail — les valeurs de dégâts par défaut, la table de malus de parade et la correction "÷2" du Score de Tranche
+    sont des interprétations à valider avec Elise avant usage en table. Les données de cette rencontre sont partagées : si tu envoies
+    ce lien à Elise, vous verrez tous les deux le même combat.
+  </footer>
+
+</div>
+
+<div id="modalHost"></div>
+
+<script>
+/* =========================================================================
+   DONNÉES DE RÈGLES (Elénior 3.0 — Chapitre III, Le système de combat)
+   ========================================================================= */
+
+/* =========================================================================
+   CONFIG AMBRELAB — API commune
+   ========================================================================= */
+const API_BASE = 'https://api.ambrelab.com';
+const CAMPAIGN_ID = 1; // Elénior — à ajuster une fois la ligne créée en base
+const POLL_INTERVAL_MS = 2000;
+
+const CARACS = ['Agilite','Force','Intellect','Perception','Charisme','Foi'];
+const CARAC_LABEL = {Agilite:'Agilité',Force:'Force',Intellect:'Intellect',Perception:'Perception',Charisme:'Charisme',Foi:'Foi',Mental:'Mental (mineure)'};
+
+// Caractéristique obligatoire + choix possibles, pour le Score de Tranche
+const CARAC_TABLE = {
+  "Armes d'hast lourde":   {oblig:'Agilite', choice:['Force']},
+  "Armes d'hast légère":   {oblig:'Agilite', choice:['Foi','Force']},
+  "Armes contondantes":    {oblig:'Force',   choice:['Agilite']},
+  "Haches":                {oblig:'Force',   choice:['Agilite','Foi']},
+  "Armes de taille":       {oblig:'Agilite', choice:['Force','Foi']},
+  "Armes d'estoc":         {oblig:'Agilite', choice:['Intellect','Perception']},
+  "Armes de contact":      {oblig:'Agilite', choice:['Perception','Intellect']},
+  "Sans armes (Force)":    {oblig:'Force',   choice:['Foi','Agilite']},
+  "Sans armes (Agilité)":  {oblig:'Agilite', choice:['Intellect','Perception']},
+  "Boucliers":             {oblig:'Force',   choice:['Agilite']},
+  "Arbalètes":             {oblig:'Perception', choice:['Foi','Agilite']},
+  "Armes à feu":           {oblig:'Perception', choice:['Intellect','Foi']},
+  "Armes de trait":        {oblig:'Perception', choice:['Force','Agilite']},
+  "Magie":                 {oblig:'Mental',  choice:['Intellect','Agilite','Force','Charisme','Foi']},
+};
+const WEAPON_TYPES = Object.keys(CARAC_TABLE);
+
+// Tableau des Tranches de combat : {min,max}: { arme: [nbDés, nbTempsAction] }
+const TRANCHE_TABLE = [
+ {min:1,max:10,   data:{"Armes d'hast lourde":[1,1],"Armes d'hast légère":[2,1],"Armes contondantes":[1,1],"Haches":[1,1],"Armes de taille":[2,1],"Armes d'estoc":[2,1],"Armes de contact":[4,2],"Sans armes (Agilité)":[4,2],"Sans armes (Force)":[2,1],"Boucliers":[1,1],"Arbalètes":[1,1],"Armes à feu":[1,1],"Armes de trait":[1,1],"Magie":[2,1]}},
+ {min:11,max:20,  data:{"Armes d'hast lourde":[2,1],"Armes d'hast légère":[2,2],"Armes contondantes":[1,1],"Haches":[2,1],"Armes de taille":[2,2],"Armes d'estoc":[2,2],"Armes de contact":[4,3],"Sans armes (Agilité)":[4,3],"Sans armes (Force)":[2,2],"Boucliers":[1,1],"Arbalètes":[1,1],"Armes à feu":[1,1],"Armes de trait":[2,1],"Magie":[3,2]}},
+ {min:21,max:30,  data:{"Armes d'hast lourde":[2,2],"Armes d'hast légère":[3,2],"Armes contondantes":[2,1],"Haches":[2,2],"Armes de taille":[3,2],"Armes d'estoc":[3,2],"Armes de contact":[5,3],"Sans armes (Agilité)":[5,3],"Sans armes (Force)":[3,2],"Boucliers":[2,1],"Arbalètes":[2,1],"Armes à feu":[2,1],"Armes de trait":[2,2],"Magie":[3,2]}},
+ {min:31,max:40,  data:{"Armes d'hast lourde":[3,2],"Armes d'hast légère":[3,3],"Armes contondantes":[2,2],"Haches":[3,2],"Armes de taille":[3,3],"Armes d'estoc":[3,3],"Armes de contact":[5,4],"Sans armes (Agilité)":[5,4],"Sans armes (Force)":[3,3],"Boucliers":[2,2],"Arbalètes":[2,2],"Armes à feu":[2,2],"Armes de trait":[3,2],"Magie":[4,2]}},
+ {min:41,max:50,  data:{"Armes d'hast lourde":[3,3],"Armes d'hast légère":[4,3],"Armes contondantes":[3,2],"Haches":[3,3],"Armes de taille":[4,3],"Armes d'estoc":[4,3],"Armes de contact":[6,4],"Sans armes (Agilité)":[6,4],"Sans armes (Force)":[4,3],"Boucliers":[3,2],"Arbalètes":[3,2],"Armes à feu":[3,2],"Armes de trait":[3,3],"Magie":[4,3]}},
+ {min:51,max:60,  data:{"Armes d'hast lourde":[4,3],"Armes d'hast légère":[4,4],"Armes contondantes":[3,3],"Haches":[4,3],"Armes de taille":[4,4],"Armes d'estoc":[4,4],"Armes de contact":[6,5],"Sans armes (Agilité)":[6,5],"Sans armes (Force)":[4,4],"Boucliers":[3,3],"Arbalètes":[3,3],"Armes à feu":[3,3],"Armes de trait":[4,3],"Magie":[5,3]}},
+ {min:61,max:70,  data:{"Armes d'hast lourde":[4,4],"Armes d'hast légère":[5,4],"Armes contondantes":[4,3],"Haches":[4,4],"Armes de taille":[5,4],"Armes d'estoc":[5,4],"Armes de contact":[7,5],"Sans armes (Agilité)":[7,5],"Sans armes (Force)":[5,4],"Boucliers":[4,3],"Arbalètes":[4,3],"Armes à feu":[4,3],"Armes de trait":[4,4],"Magie":[5,4]}},
+ {min:71,max:80,  data:{"Armes d'hast lourde":[5,4],"Armes d'hast légère":[5,5],"Armes contondantes":[4,4],"Haches":[5,4],"Armes de taille":[5,5],"Armes d'estoc":[5,5],"Armes de contact":[8,6],"Sans armes (Agilité)":[8,6],"Sans armes (Force)":[6,5],"Boucliers":[4,4],"Arbalètes":[4,4],"Armes à feu":[4,4],"Armes de trait":[5,4],"Magie":[6,4]}},
+ {min:81,max:90,  data:{"Armes d'hast lourde":[5,5],"Armes d'hast légère":[6,5],"Armes contondantes":[5,4],"Haches":[5,5],"Armes de taille":[6,5],"Armes d'estoc":[6,5],"Armes de contact":[8,7],"Sans armes (Agilité)":[8,7],"Sans armes (Force)":[6,6],"Boucliers":[5,4],"Arbalètes":[5,4],"Armes à feu":[5,4],"Armes de trait":[5,5],"Magie":[7,4]}},
+ {min:91,max:100, data:{"Armes d'hast lourde":[6,5],"Armes d'hast légère":[6,6],"Armes contondantes":[5,5],"Haches":[6,5],"Armes de taille":[6,6],"Armes d'estoc":[6,6],"Armes de contact":[9,8],"Sans armes (Agilité)":[9,8],"Sans armes (Force)":[7,6],"Boucliers":[5,5],"Arbalètes":[5,5],"Armes à feu":[5,5],"Armes de trait":[6,5],"Magie":[7,5]}},
+];
+
+// Règles simples — types de dés selon le nombre de dés indiqué
+const DICE_SETS = {
+  1:[{f:20,add:10}],
+  2:[{f:10,add:0},{f:20,add:0}],
+  3:[{f:10,add:0},{f:10,add:0},{f:10,add:0}],
+  4:[{f:8,add:0},{f:8,add:0},{f:8,add:0},{f:6,add:0}],
+  5:[{f:6,add:0},{f:6,add:0},{f:6,add:0},{f:6,add:0},{f:6,add:0}],
+  6:[{f:6,add:0},{f:6,add:0},{f:6,add:0},{f:4,add:0},{f:4,add:0},{f:4,add:0}],
+  7:[{f:6,add:0},{f:4,add:0},{f:4,add:0},{f:4,add:0},{f:4,add:0},{f:4,add:0},{f:4,add:0}],
+  8:[{f:4,add:0},{f:4,add:0},{f:4,add:0},{f:4,add:0},{f:4,add:0},{f:4,add:0},{f:3,add:0},{f:3,add:0}],
+  9:[{f:4,add:0},{f:4,add:0},{f:4,add:0},{f:3,add:0},{f:3,add:0},{f:3,add:0},{f:3,add:0},{f:3,add:0},{f:3,add:0}],
+};
+
+// Dégâts : base par type d'arme (approximation quand le type ne correspond pas 1:1 à la table d'équipement — à confirmer avec Elise)
+const DMG_BASE = {
+  "Armes d'hast lourde":3, "Armes d'hast légère":1, "Armes contondantes":1, "Haches":1,
+  "Armes de taille":1, "Armes d'estoc":1, "Armes de contact":1, "Boucliers":1,
+  "Arbalètes":1, "Armes à feu":2, "Armes de trait":1, "Sans armes (Agilité)":0, "Sans armes (Force)":0, "Magie":0
+};
+const QUALITY_LIST = ["Mauvaise","Medium","Haute","Très haute","Supérieure","Majeure","Légendaire","Divine"];
+const QUALITY_DICE = {
+  "Mauvaise":[2,3,4,6,8,10], "Medium":[3,4,6,8,10,12], "Haute":[4,6,8,10,12,14],
+  "Très haute":[6,8,10,12,14,16], "Supérieure":[8,10,12,14,16,18], "Majeure":[10,12,14,16,18,20],
+  "Légendaire":[12,14,16,18,20,22], "Divine":[14,16,18,20,22,24]
+};
+const QUALITY_BASE_MOD = {"Mauvaise":0,"Medium":0,"Haute":1,"Très haute":1,"Supérieure":2,"Majeure":2,"Légendaire":3,"Divine":3};
+
+// Malus de Parade selon la maîtrise de l'arme (paliers 0-9/10-19/.../40-49/50)
+const PARADE_MALUS = {
+  "Armes d'hast lourde":[-38,-34,-30,-26,-22,-18],
+  "Armes d'hast légère":[-34,-30,-26,-22,-18,-14],
+  "Armes à une main":[-36,-32,-28,-24,-20,-16], // taille / estoc / contondantes / haches
+  "Armes de contact":[-50,-45,-40,-35,-30,-25],
+  "Armes de trait":[-45,-40,-35,-30,-25,-20],
+  "Boucliers":[0,0,0,0,0,0],
+};
+function paradeCategoryFor(weaponType){
+  if(["Armes de taille","Armes d'estoc","Armes contondantes","Haches"].includes(weaponType)) return "Armes à une main";
+  if(["Armes de contact","Armes d'hast lourde","Armes d'hast légère","Boucliers"].includes(weaponType)) return weaponType;
+  if(["Armes de trait","Arbalètes","Armes à feu"].includes(weaponType)) return "Armes de trait";
+  return null; // sans armes / magie : pas de parade
+}
+function masteryBracketIdx(mastery){ return mastery>=50?5:Math.max(0,Math.min(4,Math.floor(mastery/10))); }
+
+// Réaction à la chaîne (p.88) : malus fixe à la prochaine réaction selon le niveau de l'adversaire
+// ayant attaqué précédemment, tant que le défenseur n'a pas eu son propre temps de jeu entretemps.
+const NIVEAU_LIST = ['Nul','Médiocre','Normale','Fort','Supérieure','Légendaire'];
+const NIVEAU_MALUS = {Nul:15, 'Médiocre':20, Normale:25, Fort:30, 'Supérieure':40, 'Légendaire':50};
+
+// Malus gradué de blessure (base, sans compétence "Ami de la faucheuse" — hypothèse de travail)
+function malusBlessure(pv,pvMax){
+  const pct = pvMax>0 ? (pv/pvMax*100) : 0;
+  if(pct>=75) return 0;
+  if(pct>=50) return -3;
+  if(pct>=25) return -12;
+  return -22;
+}
+
+const SIDE_COLORS = { allie: '#5F9484', adversaire:'#A8404B' };
+const TOKEN_PALETTE = ['#CBA135','#C08442','#7FA8D9','#C77DBB','#88C9A1','#D98C5F'];
+
+/* =========================================================================
+   ÉTAT
+   ========================================================================= */
+let state = {
+  round: 1,
+  phase: 'setup', // setup -> tranches -> picking -> timeline -> resolving -> roundEnd -> done
+  combatants: [],
+  timeline: [],
+  currentIndex: 0,
+  log: [],
+  pendingTarget: null,
+};
+
+function uid(){ return 'c'+Math.random().toString(36).slice(2,9); }
+function d(faces){ return 1+Math.floor(Math.random()*faces); }
+
+function newCombatant(){
+  return {
+    id: uid(), name:'Nouveau combattant', side:'allie', color: TOKEN_PALETTE[state.combatants.length % TOKEN_PALETTE.length],
+    quickMode:false, quickTA:3, quickAtkBonus:45,
+    niveau:'Normale', hidden:false,
+    carac: {Agilite:50,Force:50,Intellect:50,Perception:50,Charisme:50,Foi:50}, mental:30,
+    weaponType:"Armes de contact", weaponChoice:'Perception', weaponQuality:'Medium', weaponMastery:30,
+    esquive:30, paradeSkill:20, encombrement:0,
+    pvMax:15, pv:15, alive:true,
+    scoreTranche:null, nbDes:0, nbTA:0, diceRaw:[], candidates:[], kept:[], lastActionTemps:null, reactionChainNiveau:null,
+  };
+}
+
+/* =========================================================================
+   STOCKAGE PERSISTANT — API commune AmbreLab (partagé, visible par toute la table)
+   ========================================================================= */
+let sessionCode = null;   // code de la rencontre en cours (obtenu au chargement)
+let lastStateJSON = null; // dernier JSON connu, pour éviter les re-rendus inutiles au polling
+let suppressNextSave = false; // évite de renvoyer en écriture ce qu'on vient de recevoir en lecture
+
+async function saveState(){
+  if(!sessionCode) return; // pas encore de session connue, rien à sauver
+  if(suppressNextSave){ suppressNextSave = false; return; }
+  const payload = JSON.stringify(state);
+  lastStateJSON = payload;
+  try{
+    await fetch(`${API_BASE}/sessions/${sessionCode}`, {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ state: payload }),
+    });
+  }catch(e){ console.warn('save failed', e); }
+}
+
+// Récupère (ou crée) le combat en cours pour Elénior. Un seul combat possible
+// à la fois : pas de code à saisir, pas de bouton "nouvelle rencontre" à cliquer
+// pour démarrer — on tombe directement dessus à l'ouverture de la page.
+async function loadState(){
+  try{
+    const r = await fetch(`${API_BASE}/campaigns/${CAMPAIGN_ID}/sessions/latest`);
+    if(!r.ok) throw new Error('latest session indisponible');
+    const data = await r.json();
+    sessionCode = data.code;
+    lastStateJSON = data.state;
+    state = JSON.parse(data.state);
+  }catch(e){ console.warn('load failed', e); /* état par défaut du haut de fichier conservé */ }
+}
+
+// Polling léger : on redemande l'état toutes les POLL_INTERVAL_MS et on ne
+// redessine que si quelque chose a réellement changé (évite le clignotement).
+async function pollState(){
+  if(!sessionCode) return;
+  try{
+    const r = await fetch(`${API_BASE}/sessions/${sessionCode}`);
+    if(!r.ok) return;
+    const data = await r.json();
+    if(data.state !== lastStateJSON){
+      lastStateJSON = data.state;
+      state = JSON.parse(data.state);
+      suppressNextSave = true; // ce qu'on vient de lire n'a pas besoin d'être réécrit
+      render();
+    }
+  }catch(e){ /* prochain poll réessaiera */ }
+}
+setInterval(pollState, POLL_INTERVAL_MS);
+
+/* =========================================================================
+   CALCULS DE RÈGLES
+   ========================================================================= */
+function computeTranche(c){
+  if(c.quickMode){
+    c.scoreTranche = null;
+    c.nbDes = c.quickTA; c.nbTA = c.quickTA;
+    return {score:null, nbDes:c.quickTA, nbTA:c.quickTA};
+  }
+  const rule = CARAC_TABLE[c.weaponType];
+  let score;
+  if(c.weaponType === 'Magie'){
+    score = c.mental + (c.carac[c.weaponChoice]/2);
+  } else {
+    score = (c.carac[rule.oblig]/2) + (c.carac[c.weaponChoice]/2);
+  }
+  score = Math.round(score - (c.encombrement||0));
+  score = Math.max(1, Math.min(100, score));
+  const bracket = TRANCHE_TABLE.find(b=>score>=b.min && score<=b.max);
+  const [nbDes,nbTA] = bracket.data[c.weaponType];
+  c.scoreTranche = score;
+  c.nbDes = nbDes; c.nbTA = nbTA;
+  return {score,nbDes,nbTA};
+}
+
+function rollTranchesFor(c){
+  computeTranche(c);
+  if(c.quickMode){
+    // Mode rapide : chaque attaque est placée indépendamment sur 1-30 (pas de cumul d'intervalles),
+    // pratique pour des PNJ jetables sans fiche complète — inspiré de l'outil d'Elise.
+    const cand = Array.from({length:c.quickTA}, ()=> d(30)).sort((a,b)=>a-b);
+    c.diceRaw = cand.slice();
+    c.candidates = cand;
+    c.kept = [...cand];
+    c.lastActionTemps = null;
+    return;
+  }
+  const set = DICE_SETS[c.nbDes];
+  const raw = set.map(die => d(die.f)+die.add);
+  raw.sort((a,b)=>a-b);
+  c.diceRaw = raw;
+  let sum=0; const cand=[];
+  raw.forEach(v=>{ sum+=v; cand.push(Math.min(30,sum)); });
+  c.candidates = cand;
+  // sélection par défaut : garder les nbTA derniers (les plus tardifs/espacés) sauf si choix manuel ensuite
+  c.kept = cand.length<=c.nbTA ? [...cand] : recommendKeep(c);
+  c.lastActionTemps = null;
+}
+
+function recommendKeep(c){
+  // Heuristique : privilégier les temps tombant juste après (≤10) une action déjà connue d'un adversaire/allié opposé,
+  // pour exploiter la fenêtre de malus -50%. Sinon, favorise l'étalement.
+  const opponentTimes = state.combatants
+    .filter(o=>o.id!==c.id && o.side!==c.side && o.kept && o.kept.length)
+    .flatMap(o=>o.kept);
+  const scored = c.candidates.map(t=>{
+    const inWindow = opponentTimes.some(ot => t>=ot && t-ot<=10);
+    return {t, bonus: inWindow?1:0};
+  });
+  // trier par bonus décroissant puis garder l'ordre chronologique des meilleurs nbTA
+  const sortedByValue = [...scored].sort((a,b)=> b.bonus-a.bonus);
+  const chosen = sortedByValue.slice(0,c.nbTA).map(x=>x.t);
+  return c.candidates.filter(t=>chosen.includes(t));
+}
+
+function buildTimeline(){
+  const events = [];
+  state.combatants.filter(c=>c.alive).forEach(c=>{
+    c.kept.forEach(t=> events.push({temps:t, combatantId:c.id, resolved:false}));
+  });
+  events.sort((a,b)=> a.temps-b.temps);
+  state.timeline = events;
+  state.currentIndex = 0;
+  state.phase = 'timeline';
+}
+
+function reactionMalusPercent(defender, atTemps){
+  if(defender.lastActionTemps==null) return 0;
+  const diff = atTemps - defender.lastActionTemps;
+  if(diff>=0 && diff<=10) return -50;
+  return 0;
+}
+
+function attackThreshold(attacker){
+  if(attacker.quickMode){
+    return Math.round(attacker.quickAtkBonus + malusBlessure(attacker.pv, attacker.pvMax));
+  }
+  const rule = CARAC_TABLE[attacker.weaponType];
+  const majeurePart = attacker.weaponType==='Magie' ? attacker.mental : (attacker.carac[rule.oblig]/2);
+  const seuil = majeurePart + attacker.weaponMastery - (attacker.encombrement||0) + malusBlessure(attacker.pv, attacker.pvMax);
+  return Math.round(seuil);
+}
+
+function reactionThreshold(defender, type, atTemps){
+  const base = type==='esquive' ? defender.esquive : defender.paradeSkill;
+  const agiPart = defender.quickMode ? 0 : defender.carac.Agilite/2;
+  let seuil = agiPart + base + malusBlessure(defender.pv, defender.pvMax);
+  if(type==='parade'){
+    const cat = paradeCategoryFor(defender.weaponType);
+    if(cat){ seuil += PARADE_MALUS[cat][masteryBracketIdx(defender.weaponMastery)]; }
+  }
+  const rmalus = reactionMalusPercent(defender, atTemps);
+  if(rmalus!==0){ seuil = seuil + (seuil*rmalus/100); }
+  if(defender.reactionChainNiveau){ seuil -= NIVEAU_MALUS[defender.reactionChainNiveau]; }
+  return Math.round(seuil);
+}
+
+function rollDamage(attacker){
+  const dieFaces = QUALITY_DICE[attacker.weaponQuality][masteryBracketIdx(attacker.weaponMastery)];
+  const base = (DMG_BASE[attacker.weaponType]||0) + QUALITY_BASE_MOD[attacker.weaponQuality];
+  const roll = d(dieFaces);
+  return {total: roll+base, roll, dieFaces, base};
+}
+
+function log(html, cls, involved, temps){
+  state.log.push({t:Date.now(), html, cls: cls||'', involved: (involved||[]).map(c=>c.id), temps: temps!=null?temps:null});
+}
+
+/* =========================================================================
+   RENDU
+   ========================================================================= */
+const el = id => document.getElementById(id);
+
+function render(){
+  el('roundBadge').textContent = `Round ${state.round} · ${phaseLabel()}`;
+  renderCombatants();
+  renderRoundControls();
+  renderDial();
+  renderTimeline();
+  renderResolveBox();
+  renderLog();
+  saveState();
+}
+
+function phaseLabel(){
+  return {setup:'Préparation', tranches:'Tranches tirées', picking:'Choix des temps',
+          timeline:'Frise prête', resolving:'Résolution en cours', roundEnd:'Round terminé', done:'Combat terminé'}[state.phase] || '';
+}
+
+function renderCombatants(){
+  const host = el('combatantList');
+  if(state.combatants.length===0){
+    host.innerHTML = `<div class="empty-state">Aucun combattant. Ajoute Le Corbeau et ses adversaires pour commencer.</div>`;
+    el('combatantsHint').textContent = '';
+    return;
+  }
+  el('combatantsHint').textContent = `(${state.combatants.length})`;
+  host.innerHTML = state.combatants.map(c=>{
+    const masked = playerMode && c.hidden;
+    const pct = Math.max(0, Math.min(100, c.pv/c.pvMax*100));
+    const mb = malusBlessure(c.pv,c.pvMax);
+    return `
+    <div class="combatant-card ${c.alive?'':'dead'}">
+      <div class="ctop">
+        <span class="cname">${c.name} ${c.hidden?'🙈':''}</span>
+        <span class="tag ${c.side}">${c.side==='allie'?'Allié':'Adversaire'}</span>
+      </div>
+      <div class="pv-flask"><div class="pv-fill ${masked?'masked':''}" style="width:${masked?100:pct}%"></div></div>
+      <div class="pv-label"><span>${masked? 'PV masqués' : c.pv+' / '+c.pvMax+' PV'}</span><span>${c.alive? (mb<0 && !masked? 'Malus blessure '+mb : '') : '✝ Hors combat'}</span></div>
+      <div class="pv-label"><span>${masked? '??? · Niveau '+c.niveau : c.weaponType+' · Maîtrise '+c.weaponMastery+' · '+c.niveau}</span><span>${c.quickMode? 'Mode rapide · '+c.quickTA+' att.' : (c.scoreTranche!==null? 'Tranche '+c.scoreTranche : '')}</span></div>
+      <div class="mini-actions">
+        <button onclick="editCombatant('${c.id}')">Modifier</button>
+        <button onclick="quickSwapWeapon('${c.id}')">🗡️ Arme</button>
+        <button onclick="toggleHidden('${c.id}')">${c.hidden?'👁 Révéler':'🙈 Masquer'}</button>
+        <button class="danger" onclick="removeCombatant('${c.id}')">Retirer</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderRoundControls(){
+  const host = el('roundControls');
+  const canRoll = state.combatants.length>=2 && (state.phase==='setup' || state.phase==='roundEnd');
+  const inPicking = state.phase==='tranches' || state.phase==='picking';
+  let html = '';
+
+  html += `<div class="btnrow" style="margin-bottom:10px;">
+    <button class="${playerMode?'primary':'ghost'}" onclick="togglePlayerMode()">${playerMode? '👁 Mode MJ (tout visible)' : '🙈 Activer le mode joueurs'}</button>
+  </div>
+  <div class="hint" style="margin-bottom:10px;">${playerMode? "Les combattants marqués 🙈 ont leurs stats et seuils masqués à l'écran." : "Mode MJ : tout est visible, y compris les combattants marqués 🙈."}</div>`;
+
+  if(state.phase==='setup'){
+    html += `<div class="hint">Ajoute au moins deux combattants (un par camp), puis lance les Tranches pour ouvrir le round.</div>`;
+  }
+  html += `<div class="btnrow">
+    <button class="primary" ${canRoll?'':'disabled'} onclick="startRound()">🎲 Lancer les Tranches</button>
+    ${state.phase!=='setup' ? `<button class="ghost" onclick="resetCombat()">Réinitialiser la rencontre</button>` : ''}
+  </div>`;
+
+  if(inPicking){
+    html += `<div style="margin-top:14px;">` + state.combatants.filter(c=>c.alive).map(c=>{
+      const needsPick = c.candidates.length > c.nbTA;
+      const infoLine = c.quickMode
+        ? `${c.name} — Mode rapide, ${c.nbTA} Temps d'Action (jets : ${c.diceRaw.join(', ')})`
+        : `${c.name} — ${c.nbDes} dés / ${c.nbTA} Temps d'Action (dés bruts : ${c.diceRaw.join(', ')})`;
+      return `<div style="margin-bottom:12px;">
+        <div class="cname" style="font-size:12.5px;margin-bottom:4px;">${infoLine}</div>
+        <div class="dice-pick">
+        ${c.candidates.map(t=>{
+          const kept = c.kept.includes(t);
+          return `<span class="dice-chip ${kept?'kept':''}" onclick="toggleKeep('${c.id}', ${t})">Temps ${t}</span>`;
+        }).join('')}
+        </div>
+        ${needsPick ? `<div class="hint">Choisis ${c.nbTA} temps sur ${c.candidates.length} (★ suggestion : exploite une fenêtre de malus adverse connue).</div>` : ''}
+      </div>`;
+    }).join('') + `</div>
+    <div class="btnrow"><button class="primary" onclick="confirmTimeline()">Construire la frise →</button></div>`;
+  }
+
+  if(state.phase==='roundEnd'){
+    html += `<div class="hint">Round ${state.round} terminé. Relance les Tranches pour le round suivant.</div>`;
+  }
+  if(state.phase==='done'){
+    const winner = state.combatants.some(c=>c.side==='allie'&&c.alive) ? 'Les alliés' : 'Les adversaires';
+    html += `<div class="hint" style="color:var(--gold);">${winner} l'emportent. Le combat est terminé.</div>`;
+  }
+
+  host.innerHTML = html;
+}
+
+let viewMode = 'dial';
+function setViewMode(mode){ viewMode = mode; render(); }
+
+let playerMode = false;
+function togglePlayerMode(){ playerMode = !playerMode; render(); }
+function maskVal(val, entity){ return (playerMode && entity && entity.hidden) ? '???' : val; }
+function toggleHidden(id){ const c=state.combatants.find(x=>x.id===id); if(c){ c.hidden=!c.hidden; render(); } }
+
+function initials(name){
+  return name.trim().split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+}
+
+function currentEvents(){
+  return state.timeline.length? state.timeline : state.combatants.filter(c=>c.alive).flatMap(c=>c.kept.map(t=>({temps:t,combatantId:c.id,resolved:false})));
+}
+
+function renderDial(){
+  el('btnViewDial').classList.toggle('active', viewMode==='dial');
+  el('btnViewLinear').classList.toggle('active', viewMode==='linear');
+  if(viewMode==='linear'){ renderLinearFrise(); return; }
+
+  const size = 600, cx=size/2, cy=size/2, R=256, r=215;
+  let ticks = '';
+  for(let i=1;i<=30;i++){
+    const a = (i/30)*2*Math.PI - Math.PI/2;
+    const x1 = cx + Math.cos(a)*R, y1 = cy + Math.sin(a)*R;
+    const x2 = cx + Math.cos(a)*(R-13), y2 = cy + Math.sin(a)*(R-13);
+    const major = i%5===0;
+    ticks += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${major?'var(--copper)':'var(--line)'}" stroke-width="${major?3:1.2}"/>`;
+    if(major){
+      const lx = cx + Math.cos(a)*(R-38), ly = cy + Math.sin(a)*(R-38);
+      ticks += `<text x="${lx}" y="${ly}" fill="var(--parchment-dim)" font-size="16" font-family="IBM Plex Mono" text-anchor="middle" dominant-baseline="middle">${i}</text>`;
+    }
+  }
+  // fenêtres de malus (arcs) pour les combattants ayant déjà agi
+  let windows = '';
+  state.combatants.filter(c=>c.alive && c.lastActionTemps!=null).forEach(c=>{
+    const start=c.lastActionTemps, end=Math.min(30,start+10);
+    const a1=(start/30)*2*Math.PI-Math.PI/2, a2=(end/30)*2*Math.PI-Math.PI/2;
+    const large = (end-start)>15?1:0;
+    const x1=cx+Math.cos(a1)*r, y1=cy+Math.sin(a1)*r, x2=cx+Math.cos(a2)*r, y2=cy+Math.sin(a2)*r;
+    windows += `<path d="M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z" fill="${c.color}" opacity="0.08"/>`;
+  });
+  // tokens — cercle pour les alliés, losange pour les adversaires, initiales visibles
+  let tokens='';
+  const events = currentEvents();
+  events.forEach((ev,idx)=>{
+    const c = state.combatants.find(x=>x.id===ev.combatantId);
+    if(!c) return;
+    const a = (ev.temps/30)*2*Math.PI - Math.PI/2;
+    const rr = r - 28 - (idx%3)*22; // léger décalage anti-chevauchement
+    const x = cx+Math.cos(a)*rr, y = cy+Math.sin(a)*rr;
+    const isCurrent = state.phase==='timeline' && state.timeline[state.currentIndex]===ev;
+    const rad = isCurrent?19:15;
+    const opacity = ev.resolved?0.35:1;
+    const pulse = isCurrent? `<animate attributeName="r" values="${rad};${rad+4};${rad}" dur="1.4s" repeatCount="indefinite"/>` : '';
+    if(c.side==='adversaire'){
+      tokens += `<rect x="${x-rad*0.8}" y="${y-rad*0.8}" width="${rad*1.6}" height="${rad*1.6}" transform="rotate(45 ${x} ${y})" fill="${c.color}" stroke="var(--ink)" stroke-width="2" opacity="${opacity}"/>`;
+    } else {
+      tokens += `<circle cx="${x}" cy="${y}" r="${rad}" fill="${c.color}" stroke="var(--ink)" stroke-width="2" opacity="${opacity}">${pulse}</circle>`;
+    }
+    tokens += `<text x="${x}" y="${y}" fill="var(--ink)" font-size="13" font-weight="700" font-family="IBM Plex Mono" text-anchor="middle" dominant-baseline="middle" opacity="${opacity}">${initials(c.name)}</text>`;
+  });
+
+  const svg = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="max-width:100%; height:auto;">
+    <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="var(--line)" stroke-width="1"/>
+    <circle cx="${cx}" cy="${cy}" r="${r-22}" fill="none" stroke="var(--line)" stroke-width="1" stroke-dasharray="2 5"/>
+    ${windows}
+    ${ticks}
+    ${tokens}
+    <text x="${cx}" y="${cy+4}" text-anchor="middle" font-family="Cinzel" font-size="17" fill="var(--parchment-dim)">30 TEMPS</text>
+  </svg>`;
+  el('dialWrap').innerHTML = svg;
+  el('dialLegend').innerHTML = state.combatants.filter(c=>c.alive).map(c=>
+    `<span><span class="legend-dot ${c.side}" style="background:${c.color}"></span>${c.name}</span>`
+  ).join('');
+}
+
+function renderLinearFrise(){
+  const events = currentEvents();
+  const w = 900;
+  let ticks='';
+  for(let i=1;i<=30;i++){
+    const x = 20 + (i-1)/29*(w-40);
+    const major = i%5===0 || i===1;
+    ticks += `<div class="lf-tick ${major?'major':''}" style="left:${x}px;"></div>`;
+    if(major) ticks += `<div class="lf-tick-label" style="left:${x}px;">${i}</div>`;
+  }
+  let tokens='';
+  // répartir les tokens qui partagent (à peu près) le même temps sur plusieurs rangées
+  const laneOf = {};
+  events.forEach((ev,idx)=>{
+    const key = ev.temps;
+    laneOf[key] = (laneOf[key]||0);
+  });
+  const seen = {};
+  events.forEach((ev)=>{
+    const c = state.combatants.find(x=>x.id===ev.combatantId);
+    if(!c) return;
+    const x = 20 + (ev.temps-1)/29*(w-40);
+    seen[ev.temps] = (seen[ev.temps]||0);
+    const lane = seen[ev.temps]++;
+    const isCurrent = state.phase==='timeline' && state.timeline[state.currentIndex]===ev;
+    tokens += `<div class="lf-token ${c.side} ${isCurrent?'current':''}" style="left:${x}px; top:${70+ (lane%2===0? -34-lane*8 : 34+lane*8)}px; opacity:${ev.resolved?0.4:1};">
+      <div class="dot" style="background:${c.color};"></div>
+      <span class="lbl">${initials(c.name)}·T${ev.temps}</span>
+    </div>`;
+  });
+  el('dialWrap').innerHTML = `<div class="linear-frise" style="width:100%; max-width:${w}px;">
+    <div class="lf-axis"></div>
+    ${ticks}
+    ${tokens}
+  </div>`;
+  el('dialLegend').innerHTML = state.combatants.filter(c=>c.alive).map(c=>
+    `<span><span class="legend-dot ${c.side}" style="background:${c.color}"></span>${c.name}</span>`
+  ).join('');
+}
+
+function renderTimeline(){
+  const host = el('timelinePanel');
+  if(!['timeline','resolving','roundEnd','done'].includes(state.phase) || state.timeline.length===0){
+    host.innerHTML=''; return;
+  }
+  host.innerHTML = `<div class="timeline-list">` + state.timeline.map((ev,idx)=>{
+    const c = state.combatants.find(x=>x.id===ev.combatantId);
+    const cls = ev.resolved? 'done' : (idx===state.currentIndex? 'current':'');
+    return `<div class="tl-item ${cls}">
+      <span class="tl-t">T${ev.temps}</span>
+      <span style="flex:1;">${c?c.name:'?'} ${c && !c.alive ? '(hors combat)':''}</span>
+      <span>${ev.resolved? '✓' : (idx===state.currentIndex?'▶':'')}</span>
+    </div>`;
+  }).join('') + `</div>`;
+}
+
+let pendingResolution = null; // {event, attacker, target, atkRoll, defType, defRoll, stage}
+
+function renderResolveBox(){
+  const host = el('resolveBoxHost');
+  if(state.phase!=='timeline'){ host.innerHTML=''; return; }
+
+  if(state.currentIndex >= state.timeline.length){
+    host.innerHTML = `<div class="resolve-box"><h3>Tous les temps du round ont été joués</h3>
+      <div class="btnrow"><button class="primary" onclick="endRound()">Clore le round →</button></div></div>`;
+    return;
+  }
+
+  const ev = state.timeline[state.currentIndex];
+  const attacker = state.combatants.find(c=>c.id===ev.combatantId);
+  if(!attacker.alive){
+    host.innerHTML = `<div class="resolve-box"><div class="hint">${attacker.name} est hors combat, ce temps est ignoré.</div>
+      <div class="btnrow"><button class="primary" onclick="skipEvent()">Passer au temps suivant →</button></div></div>`;
+    return;
+  }
+
+  const enemies = state.combatants.filter(c=>c.alive && c.side!==attacker.side);
+  if(enemies.length===0){ host.innerHTML=''; checkVictory(); return; }
+
+  if(!pendingResolution || pendingResolution.event!==ev){
+    pendingResolution = {event:ev, attacker, target: null, stage:'actionType'};
+  }
+  const p = pendingResolution;
+
+  let html = `<div class="resolve-box"><h3>Temps ${ev.temps} — ${attacker.name} agit</h3>`;
+
+  if(p.stage==='actionType'){
+    html += `<div class="hint" style="margin-bottom:8px;">Que fait ${attacker.name} à ce temps ?</div>
+    <div class="btnrow">
+      <button class="primary" onclick="chooseActionType('attaque')">⚔️ Attaquer</button>
+      <button onclick="chooseActionType('autre')">📝 Autre action</button>
+      <button class="ghost" onclick="chooseActionType('passer')">⏭️ Passer son tour</button>
+    </div>
+    <div class="hint" style="margin-top:8px;">Passer son tour n'entraîne aucun malus de Réaction ultérieur (règle p.85). Une autre action (déplacement, objet, capacité...) compte comme une Action pleine normale.</div>
+    </div>`;
+    host.innerHTML = html; return;
+  }
+
+  if(p.stage==='autreAction'){
+    html += `<div class="field"><label>Description de l'action (facultatif, pour le journal)</label><input id="autreActionDesc" placeholder="ex : se replie derrière le pilier"></div>
+    <div class="btnrow"><button class="primary" onclick="confirmAutreAction()">Valider cette action →</button></div></div>`;
+    host.innerHTML = html; return;
+  }
+
+  if(!p.target){
+    html += `<div class="field"><label>Cible</label><select id="targetSelect">
+      ${enemies.map(e=>`<option value="${e.id}">${e.name} (${maskVal(e.pv+'/'+e.pvMax+' PV', e)})</option>`).join('')}
+    </select></div>
+    <div class="btnrow"><button class="primary" onclick="chooseTarget()">Confirmer la cible</button></div></div>`;
+    host.innerHTML = html; return;
+  }
+
+  const seuilAtk = attackThreshold(attacker);
+  html += `<div class="threshold-line"><span>Cible</span><b>${p.target.name} (${maskVal(p.target.pv+'/'+p.target.pvMax+' PV', p.target)})</b></div>`;
+  html += `<div class="threshold-line"><span>Seuil d'attaque (${attacker.quickMode? 'mode rapide' : attacker.weaponType}, malus blessure ${malusBlessure(attacker.pv,attacker.pvMax)})</span><b>${maskVal(seuilAtk, attacker)}</b></div>`;
+
+  if(p.stage==='target'){
+    html += `<div class="roll-row">
+      <span class="roll-label">Jet d'attaque de ${attacker.name} (d100 — physique ou automatique)</span>
+      <input type="number" id="atkRollInput" placeholder="—" min="1" max="100">
+      <button class="primary" onclick="submitAtkRoll(false)">Valider ce jet</button>
+      <button class="ghost" onclick="submitAtkRoll(true)">🎲 Lancer pour moi</button>
+    </div>`;
+  } else if(p.stage>='atkDone'){
+    const hit = p.atkRoll<=seuilAtk;
+    html += `<div class="threshold-line"><span>Jet d'attaque</span><b class="mono">${p.atkRoll}</b> <span class="badge-result ${hit?'badge-pending':'badge-rate'}">${hit?'TOUCHÉ':'RATÉ'}</span></div>`;
+
+    if(!hit){
+      html += `<div class="btnrow"><button class="primary" onclick="finalizeEvent(false)">Continuer →</button></div>`;
+    } else if(p.stage==='atkDone'){
+      const canParade = paradeCategoryFor(p.target.weaponType)!==null;
+      html += `<div class="field" style="margin-top:10px;"><label>Réaction de ${p.target.name}</label>
+        <select id="reactSelect">
+          <option value="esquive">Esquive</option>
+          ${canParade? `<option value="parade">Parade</option>` : ''}
+        </select></div>
+        <div class="btnrow"><button class="primary" onclick="confirmReactionType()">Confirmer la réaction</button></div>`;
+    } else if(p.stage==='reactChosen'){
+      const seuilDef = reactionThreshold(p.target, p.defType, ev.temps);
+      const rmalus = reactionMalusPercent(p.target, ev.temps);
+      const chainNote = p.target.reactionChainNiveau ? ` · chaîne vs ${p.target.reactionChainNiveau} (-${NIVEAU_MALUS[p.target.reactionChainNiveau]})` : '';
+      html += `<div class="threshold-line"><span>${p.defType==='esquive'?'Esquive':'Parade'} de ${p.target.name}${rmalus? ' (malus action récente '+rmalus+'%)':''}${chainNote}</span><b>${maskVal(seuilDef, p.target)}</b></div>
+      <div class="roll-row">
+        <span class="roll-label">Jet de ${p.defType==='esquive'?'esquive':'parade'} de ${p.target.name} (d100)</span>
+        <input type="number" id="defRollInput" placeholder="—" min="1" max="100">
+        <button class="primary" onclick="submitDefRoll(false)">Valider ce jet</button>
+        <button class="ghost" onclick="submitDefRoll(true)">🎲 Lancer pour moi</button>
+      </div>`;
+    } else if(p.stage==='defDone'){
+      const seuilDef = reactionThreshold(p.target, p.defType, ev.temps);
+      const dodged = p.defRoll<=seuilDef;
+      html += `<div class="threshold-line"><span>Jet de réaction</span><b class="mono">${p.defRoll}</b> <span class="badge-result ${dodged?'badge-success':'badge-impact'}">${dodged? (p.defType==='esquive'?'ESQUIVÉ':'PARÉ') :'COUP PORTÉ'}</span></div>`;
+      if(dodged){
+        html += `<div class="btnrow"><button class="primary" onclick="finalizeEvent(false)">Continuer →</button></div>`;
+      } else {
+        if(!p.dmg) p.dmg = rollDamage(attacker);
+        html += `<div class="threshold-line"><span>Dégâts (${attacker.weaponQuality}, D${p.dmg.dieFaces}+${p.dmg.base})</span><b style="color:var(--res-impact);">${p.dmg.total}</b></div>
+        <div class="btnrow"><button class="primary" onclick="finalizeEvent(true)">Appliquer les dégâts →</button></div>`;
+      }
+    }
+  }
+  html += `</div>`;
+  host.innerHTML = html;
+
+  const ai = el('atkRollInput'); if(ai){ ai.focus(); onEnter('atkRollInput', ()=>submitAtkRoll(false)); }
+  const di = el('defRollInput'); if(di){ di.focus(); onEnter('defRollInput', ()=>submitDefRoll(false)); }
+}
+
+function onEnter(elId, callback){
+  const elm = el(elId);
+  if(elm){ elm.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); callback(); } }); }
+}
+
+function renderLog(){
+  el('logHost').innerHTML = state.log.slice(-80).reverse().map(l=>{
+    const masked = playerMode && l.involved && l.involved.some(id=>{
+      const c = state.combatants.find(x=>x.id===id);
+      return c && c.hidden;
+    });
+    const content = masked
+      ? `${l.temps!=null? '<b>T'+l.temps+'</b> — ':''}Action masquée <span class="hint" style="display:inline;">(un combattant non révélé est impliqué)</span>.`
+      : l.html;
+    return `<div class="log-entry ${l.cls}"><span class="lt">›</span>${content}</div>`;
+  }).join('') || `<div class="empty-state">Le journal est vide pour l'instant.</div>`;
+}
+
+/* =========================================================================
+   ACTIONS UI
+   ========================================================================= */
+function startRound(){
+  state.combatants.filter(c=>c.alive).forEach(c=>{ rollTranchesFor(c); });
+  state.phase='picking';
+  log(`<b>— Round ${state.round} —</b> Tranches tirées pour tous les combattants.`, 'log-info');
+  render();
+}
+
+function toggleKeep(cid, t){
+  const c = state.combatants.find(x=>x.id===cid);
+  if(!c) return;
+  const already = c.kept.includes(t);
+  if(already){ c.kept = c.kept.filter(x=>x!==t); }
+  else {
+    if(c.kept.length>=c.nbTA){ return; } // limite atteinte
+    c.kept.push(t); c.kept.sort((a,b)=>a-b);
+  }
+  render();
+}
+
+function confirmTimeline(){
+  const invalid = state.combatants.filter(c=>c.alive).find(c=> c.kept.length!==c.nbTA);
+  if(invalid){ showAlert(`${invalid.name} doit garder exactement ${invalid.nbTA} temps (actuellement ${invalid.kept.length} sélectionné${invalid.kept.length>1?'s':''}).`); return; }
+  buildTimeline();
+  log(`Frise construite : ${state.timeline.map(e=>{const c=state.combatants.find(x=>x.id===e.combatantId);return c.name+'@'+e.temps;}).join(', ')}.`, 'log-info', state.combatants.filter(c=>c.alive));
+  render();
+}
+
+function chooseActionType(type){
+  if(type==='attaque'){
+    const enemies = state.combatants.filter(c=>c.alive && c.side!==pendingResolution.attacker.side);
+    if(enemies.length===1){ pendingResolution.target = enemies[0]; }
+    pendingResolution.stage='target';
+    render();
+  }
+  else if(type==='autre'){ pendingResolution.stage='autreAction'; render(); }
+  else if(type==='passer'){ finalizePass(); }
+}
+
+function confirmAutreAction(){
+  const desc = (el('autreActionDesc').value||'').trim();
+  const {event, attacker} = pendingResolution;
+  log(`<b>T${event.temps}</b> ${attacker.name} effectue une autre action${desc? ' : '+desc : ''}.`, 'log-info', [attacker], event.temps);
+  attacker.lastActionTemps = event.temps; // compte comme Action pleine -> malus de réaction -50% normal
+  attacker.reactionChainNiveau = null; // il a eu son temps de jeu
+  event.resolved = true;
+  state.currentIndex++;
+  pendingResolution = null;
+  if(checkVictory()){ render(); return; }
+  render();
+}
+
+function finalizePass(){
+  const {event, attacker} = pendingResolution;
+  log(`<b>T${event.temps}</b> ${attacker.name} passe son tour (sans malus de Réaction).`, 'log-info', [attacker], event.temps);
+  // Ne touche pas lastActionTemps : "absence de malus de Réactions" (p.85)
+  attacker.reactionChainNiveau = null; // il a eu son temps de jeu
+  event.resolved = true;
+  state.currentIndex++;
+  pendingResolution = null;
+  if(checkVictory()){ render(); return; }
+  render();
+}
+
+function chooseTarget(){
+  const sel = el('targetSelect');
+  pendingResolution.target = state.combatants.find(c=>c.id===sel.value);
+  pendingResolution.stage='target';
+  render();
+}
+
+function submitAtkRoll(auto){
+  const roll = auto ? d(100) : parseInt(el('atkRollInput').value,10);
+  if(isNaN(roll)||roll<1||roll>100){ showAlert('Entre un jet entre 1 et 100.'); return; }
+  pendingResolution.atkRoll = roll;
+  pendingResolution.stage='atkDone';
+  render();
+}
+
+function confirmReactionType(){
+  pendingResolution.defType = el('reactSelect').value;
+  pendingResolution.stage='reactChosen';
+  render();
+}
+
+function submitDefRoll(auto){
+  const roll = auto ? d(100) : parseInt(el('defRollInput').value,10);
+  if(isNaN(roll)||roll<1||roll>100){ showAlert('Entre un jet entre 1 et 100.'); return; }
+  pendingResolution.defRoll = roll;
+  pendingResolution.stage='defDone';
+  render();
+}
+
+function finalizeEvent(applyDamage){
+  const {event, attacker, target, atkRoll, defType, defRoll, dmg} = pendingResolution;
+  const seuilAtk = attackThreshold(attacker);
+  const hit = atkRoll<=seuilAtk;
+
+  let html = `<b>T${event.temps}</b> ${attacker.name} attaque ${target.name} (jet ${atkRoll} / seuil ${seuilAtk}) — `;
+  if(!hit){
+    html += `raté.`;
+    log(html,'log-miss',[attacker,target],event.temps);
+  } else {
+    const seuilDef = reactionThreshold(target, defType, event.temps);
+    const dodged = defRoll<=seuilDef;
+    html += `touché. ${target.name} tente ${defType==='esquive'?'une esquive':'une parade'} (jet ${defRoll} / seuil ${seuilDef}) — `;
+    if(dodged){
+      html += `réussie, aucun dégât.`;
+      log(html,'log-success',[attacker,target],event.temps);
+    } else {
+      html += `échouée. <b class="log-impact">${dmg.total} dégâts</b> (D${dmg.dieFaces}+${dmg.base}, jet ${dmg.roll}).`;
+      target.pv -= dmg.total;
+      log(html,'log-impact',[attacker,target],event.temps);
+      if(target.pv<=0){
+        target.pv = Math.min(target.pv,0);
+        target.alive=false;
+        log(`💀 <b>${target.name}</b> tombe à ${target.pv} PV et est hors combat.`, 'log-impact',[target],event.temps);
+      }
+    }
+    // Réaction à la chaîne (p.88) : la prochaine réaction du défenseur héritera d'un malus lié au niveau de cet attaquant.
+    target.reactionChainNiveau = attacker.niveau;
+  }
+  attacker.lastActionTemps = event.temps;
+  attacker.reactionChainNiveau = null; // il vient d'avoir son temps de jeu
+  event.resolved = true;
+  state.currentIndex++;
+  pendingResolution = null;
+
+  if(checkVictory()) { render(); return; }
+  render();
+}
+
+function skipEvent(){
+  state.timeline[state.currentIndex].resolved = true;
+  state.currentIndex++;
+  pendingResolution=null;
+  render();
+}
+
+function checkVictory(){
+  const alliesAlive = state.combatants.some(c=>c.side==='allie'&&c.alive);
+  const enemiesAlive = state.combatants.some(c=>c.side==='adversaire'&&c.alive);
+  if(state.combatants.length>0 && (!alliesAlive || !enemiesAlive)){
+    state.phase='done';
+    log(`<b>Fin du combat.</b> ${alliesAlive? 'Les alliés survivent.' : 'Les adversaires ont le dessus.'}`, 'log-info');
+    return true;
+  }
+  return false;
+}
+
+function endRound(){
+  state.round++;
+  state.combatants.forEach(c=>{ c.lastActionTemps=null; c.reactionChainNiveau=null; c.kept=[]; c.candidates=[]; c.diceRaw=[]; });
+  state.timeline=[]; state.currentIndex=0;
+  state.phase='roundEnd';
+  log(`— Fin du round ${state.round-1} —`, 'log-info');
+  render();
+}
+
+function resetCombat(){
+  showConfirm('Réinitialiser toute la rencontre ? Les combattants sont conservés, mais PV et round repartent à zéro.', ()=>{
+    state.round=1; state.phase='setup'; state.timeline=[]; state.currentIndex=0; state.log=[];
+    state.combatants.forEach(c=>{ c.pv=c.pvMax; c.alive=true; c.lastActionTemps=null; c.reactionChainNiveau=null; c.kept=[]; c.candidates=[]; c.diceRaw=[]; c.scoreTranche=null; });
+    log('<b>— Rencontre réinitialisée —</b>', 'log-info');
+    render();
+  });
+}
+
+function removeCombatant(id){
+  state.combatants = state.combatants.filter(c=>c.id!==id);
+  render();
+}
+
+/* =========================================================================
+   MODAL — AJOUT / EDITION D'UN COMBATTANT
+   ========================================================================= */
+function quickSwapWeapon(id){
+  const c = state.combatants.find(x=>x.id===id);
+  if(!c) return;
+  const rule = CARAC_TABLE[c.weaponType];
+  const modal = document.createElement('div');
+  modal.className='modal-overlay';
+  modal.innerHTML = `
+  <div class="modal" style="max-width:420px; position:relative;">
+    <span class="close-x" onclick="closeModal()">✕</span>
+    <h2>Changer d'arme — ${c.name}</h2>
+    <div class="hint" style="margin-bottom:14px;">Ce changement s'applique immédiatement aux prochains jets d'attaque, de dégâts et de Parade. Le Score de Tranche déjà tiré ce round-ci n'est pas recalculé (il faudra attendre le round suivant pour que le nouveau type d'arme influence le nombre de Temps d'Action).</div>
+    <div class="field"><label>Type d'arme / technique</label>
+      <select id="qs_weapon" onchange="updateQuickSwapChoice()">
+        ${WEAPON_TYPES.map(w=>`<option value="${w}" ${c.weaponType===w?'selected':''}>${w}</option>`).join('')}
+      </select>
+    </div>
+    <div class="field"><label>Caractéristique au choix</label><select id="qs_choice"></select></div>
+    <div class="field-row">
+      <div class="field"><label>Maîtrise (0-50)</label><input id="qs_mastery" type="number" min="0" max="50" value="${c.weaponMastery}"></div>
+      <div class="field"><label>Qualité</label><select id="qs_quality">${QUALITY_LIST.map(q=>`<option value="${q}" ${c.weaponQuality===q?'selected':''}>${q}</option>`).join('')}</select></div>
+    </div>
+    <div class="btnrow">
+      <button class="primary" onclick="saveQuickSwap('${c.id}')">Appliquer</button>
+      <button class="ghost" onclick="closeModal()">Annuler</button>
+    </div>
+  </div>`;
+  el('modalHost').appendChild(modal);
+  modal.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); saveQuickSwap(c.id); } });
+  window._editingChoice = c.weaponChoice;
+  updateQuickSwapChoice();
+}
+function updateQuickSwapChoice(){
+  const weapon = el('qs_weapon').value;
+  const rule = CARAC_TABLE[weapon];
+  const sel = el('qs_choice');
+  sel.innerHTML = rule.choice.map(cc=>`<option value="${cc}" ${window._editingChoice===cc?'selected':''}>${CARAC_LABEL[cc]}</option>`).join('');
+}
+function saveQuickSwap(id){
+  const c = state.combatants.find(x=>x.id===id);
+  if(!c) return;
+  const oldWeapon = c.weaponType;
+  c.weaponType = el('qs_weapon').value;
+  c.weaponChoice = el('qs_choice').value;
+  c.weaponMastery = parseInt(el('qs_mastery').value,10)||0;
+  c.weaponQuality = el('qs_quality').value;
+  log(`<b>${c.name}</b> change d'arme : ${oldWeapon} → ${c.weaponType}.`, 'log-info', [c]);
+  closeModal();
+  render();
+}
+
+function editCombatant(id){
+  const existing = id ? state.combatants.find(c=>c.id===id) : newCombatant();
+  const isNew = !id;
+  const rule = CARAC_TABLE[existing.weaponType];
+
+  const modal = document.createElement('div');
+  modal.className='modal-overlay';
+  modal.innerHTML = `
+  <div class="modal" style="position:relative;">
+    <span class="close-x" onclick="closeModal()">✕</span>
+    <h2>${isNew? 'Nouveau combattant' : 'Modifier '+existing.name}</h2>
+
+    <div class="field"><label>Nom</label><input id="f_name" value="${existing.name}"></div>
+    <div class="field-row">
+      <div class="field"><label>Camp</label>
+        <select id="f_side"><option value="allie" ${existing.side==='allie'?'selected':''}>Allié</option><option value="adversaire" ${existing.side==='adversaire'?'selected':''}>Adversaire</option></select>
+      </div>
+      <div class="field"><label>PV max</label><input id="f_pvmax" type="number" value="${existing.pvMax}"></div>
+    </div>
+    <div class="field"><label>Niveau (malus de Réaction en chaîne infligé, p.88)</label>
+      <select id="f_niveau">${NIVEAU_LIST.map(n=>`<option value="${n}" ${existing.niveau===n?'selected':''}>${n} (-${NIVEAU_MALUS[n]})</option>`).join('')}</select>
+    </div>
+
+    <div class="field">
+      <label>Mode de calcul des Temps d'Action</label>
+      <select id="f_mode" onchange="updateModeVisibility()">
+        <option value="full" ${!existing.quickMode?'selected':''}>Complet — via les caractéristiques (Score de Tranche)</option>
+        <option value="quick" ${existing.quickMode?'selected':''}>Rapide — nombre d'attaques déclaré directement (PNJ jetable)</option>
+      </select>
+      <div class="hint">Le mode rapide inspiré de l'outil d'Elise : tu indiques juste combien d'attaques ce combattant a dans le round, sans remplir ses caractéristiques.</div>
+    </div>
+
+    <div id="quickFields">
+      <div class="field-row">
+        <div class="field"><label>Nombre de Temps d'Action</label><input id="f_quickTA" type="number" min="1" max="9" value="${existing.quickTA}"></div>
+        <div class="field"><label>Seuil d'attaque direct (sur d100)</label><input id="f_quickAtk" type="number" min="1" max="100" value="${existing.quickAtkBonus}"></div>
+      </div>
+    </div>
+
+    <div id="fullFields">
+      <div class="field-row3">
+        ${CARACS.map(k=>`<div class="field"><label>${CARAC_LABEL[k]}</label><input id="f_${k}" type="number" min="0" max="100" value="${existing.carac[k]}"></div>`).join('')}
+      </div>
+      <div class="field"><label>Mental (mineure, requis pour Magie)</label><input id="f_mental" type="number" min="0" max="50" value="${existing.mental}"></div>
+    </div>
+
+    <div class="field"><label>Type d'arme / technique</label>
+      <select id="f_weapon" onchange="updateChoiceOptions()">
+        ${WEAPON_TYPES.map(w=>`<option value="${w}" ${existing.weaponType===w?'selected':''}>${w}</option>`).join('')}
+      </select>
+      <div class="hint" id="obligHint"></div>
+    </div>
+    <div class="field" id="choiceField"><label>Caractéristique au choix</label><select id="f_choice"></select></div>
+
+    <div class="field-row3">
+      <div class="field"><label>Maîtrise de l'arme (0-50)</label><input id="f_mastery" type="number" min="0" max="50" value="${existing.weaponMastery}"></div>
+      <div class="field"><label id="lbl_esquive">Esquive (mineure)</label><input id="f_esquive" type="number" min="0" max="50" value="${existing.esquive}"></div>
+      <div class="field"><label id="lbl_parade">Parade (mineure)</label><input id="f_parade" type="number" min="0" max="50" value="${existing.paradeSkill}"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Qualité de l'arme</label><select id="f_quality">${QUALITY_LIST.map(q=>`<option value="${q}" ${existing.weaponQuality===q?'selected':''}>${q}</option>`).join('')}</select></div>
+      <div class="field" id="encField"><label>Malus d'encombrement</label><input id="f_enc" type="number" value="${existing.encombrement}"></div>
+    </div>
+
+    <div class="btnrow" style="margin-top:6px; border-top:1px solid var(--line); padding-top:12px;">
+      <button class="ghost" onclick="saveAsCombatSheet()">Enregistrer comme fiche</button>
+      <button class="ghost" onclick="openCombatSheetPicker()">Charger une fiche</button>
+      <button class="ghost" onclick="el('importSheetFile').click()">Importer JSON</button>
+      <button class="ghost" onclick="exportCombatSheet()">Exporter JSON</button>
+    </div>
+    <input type="file" id="importSheetFile" accept="application/json" style="display:none" onchange="handleImportSheetFile(event)">
+
+    <div class="btnrow">
+      <button class="primary" onclick="saveCombatantForm('${existing.id}', ${isNew})">Enregistrer</button>
+      <button class="ghost" onclick="closeModal()">Annuler</button>
+    </div>
+  </div>`;
+  el('modalHost').appendChild(modal);
+  modal.addEventListener('keydown', e=>{
+    if(e.key==='Enter' && e.target.tagName!=='TEXTAREA'){
+      e.preventDefault();
+      saveCombatantForm(existing.id, isNew);
+    }
+  });
+  window._editingChoice = existing.weaponChoice;
+  updateChoiceOptions();
+  updateModeVisibility();
+}
+
+function updateModeVisibility(){
+  const quick = el('f_mode').value === 'quick';
+  el('quickFields').style.display = quick? 'block':'none';
+  el('fullFields').style.display = quick? 'none':'block';
+  el('encField').style.display = quick? 'none':'block';
+  el('choiceField').style.display = quick? 'none':'block';
+  el('lbl_esquive').textContent = quick? 'Esquive (seuil direct sur d100)' : 'Esquive (mineure)';
+  el('lbl_parade').textContent = quick? 'Parade (seuil direct sur d100)' : 'Parade (mineure)';
+}
+
+function updateChoiceOptions(){
+  const weapon = el('f_weapon').value;
+  const rule = CARAC_TABLE[weapon];
+  el('obligHint').textContent = weapon==='Magie'
+    ? `Obligatoire : Mental (mineure). Choix possible : ${rule.choice.map(c=>CARAC_LABEL[c]).join(', ')}.`
+    : `Obligatoire : ${CARAC_LABEL[rule.oblig]}. Choix possible : ${rule.choice.map(c=>CARAC_LABEL[c]).join(', ')}.`;
+  const sel = el('f_choice');
+  sel.innerHTML = rule.choice.map(c=>`<option value="${c}" ${window._editingChoice===c?'selected':''}>${CARAC_LABEL[c]}</option>`).join('');
+}
+
+function closeModal(){ el('modalHost').innerHTML=''; }
+
+/* =========================================================================
+   FICHES DE COMBAT (CombatSheet) — permanentes en base, réutilisables
+   d'une rencontre à l'autre. Séparées de l'état temporaire du combat :
+   aucune synchronisation automatique dans un sens comme dans l'autre.
+   ========================================================================= */
+
+function readCombatSheetFromForm(){
+  const carac = {};
+  CARACS.forEach(k => carac[k] = parseInt(el('f_'+k).value,10)||0);
+  return {
+    name: el('f_name').value || 'Combattant',
+    side_default: el('f_side').value,
+    quick_mode: el('f_mode').value === 'quick',
+    quick_ta: parseInt(el('f_quickTA').value,10) || null,
+    quick_atk_bonus: parseInt(el('f_quickAtk').value,10) || null,
+    niveau: el('f_niveau').value,
+    carac: carac,
+    mental: parseInt(el('f_mental').value,10) || 0,
+    weapon_type: el('f_weapon').value,
+    weapon_choice: el('f_choice').value,
+    weapon_quality: el('f_quality').value,
+    weapon_mastery: parseInt(el('f_mastery').value,10) || 0,
+    esquive: parseInt(el('f_esquive').value,10) || 0,
+    parade_skill: parseInt(el('f_parade').value,10) || 0,
+    encombrement: parseInt(el('f_enc').value,10) || 0,
+    pv_max: parseInt(el('f_pvmax').value,10) || 1,
+  };
+}
+
+// Remplit le formulaire actuellement ouvert avec les champs d'une fiche
+// (venant de la base ou d'un import JSON). Ne touche à rien d'autre que
+// le formulaire — les champs temporaires du combat sont gérés séparément
+// par saveCombatantForm au moment de l'enregistrement.
+function applyCombatSheetToForm(sheet){
+  el('f_name').value = sheet.name || 'Combattant';
+  el('f_side').value = sheet.side_default || 'allie';
+  el('f_pvmax').value = sheet.pv_max ?? 15;
+  el('f_niveau').value = sheet.niveau || 'Normale';
+  el('f_mode').value = sheet.quick_mode ? 'quick' : 'full';
+  el('f_quickTA').value = sheet.quick_ta ?? 3;
+  el('f_quickAtk').value = sheet.quick_atk_bonus ?? 45;
+  CARACS.forEach(k => { el('f_'+k).value = (sheet.carac && sheet.carac[k]) ?? 50; });
+  el('f_mental').value = sheet.mental ?? 30;
+  el('f_weapon').value = sheet.weapon_type || WEAPON_TYPES[0];
+  window._editingChoice = sheet.weapon_choice || null;
+  updateChoiceOptions();
+  if(sheet.weapon_choice) el('f_choice').value = sheet.weapon_choice;
+  el('f_mastery').value = sheet.weapon_mastery ?? 30;
+  el('f_esquive').value = sheet.esquive ?? 30;
+  el('f_parade').value = sheet.parade_skill ?? 20;
+  el('f_quality').value = sheet.weapon_quality || 'Medium';
+  el('f_enc').value = sheet.encombrement ?? 0;
+  updateModeVisibility();
+}
+
+async function saveAsCombatSheet(){
+  const payload = readCombatSheetFromForm();
+  try{
+    const r = await fetch(`${API_BASE}/campaigns/${CAMPAIGN_ID}/combatsheets`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload),
+    });
+    if(!r.ok) throw new Error('échec');
+    showAlert(`Fiche "${payload.name}" enregistrée en base.`);
+  }catch(e){ showAlert("Échec de l'enregistrement de la fiche — vérifie la connexion à l'API."); }
+}
+
+async function openCombatSheetPicker(){
+  let sheets;
+  try{
+    const r = await fetch(`${API_BASE}/campaigns/${CAMPAIGN_ID}/combatsheets`);
+    if(!r.ok) throw new Error('liste indisponible');
+    sheets = await r.json();
+  }catch(e){ showAlert('Impossible de récupérer les fiches enregistrées.'); return; }
+
+  if(!sheets.length){ showAlert('Aucune fiche enregistrée pour le moment.'); return; }
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `<div class="modal" style="max-width:420px;">
+    <h2>Charger une fiche</h2>
+    <div class="btnrow" id="sheetPickerList" style="flex-direction:column; align-items:stretch;"></div>
+    <div class="btnrow"><button class="ghost" id="sheetPickerCancel">Annuler</button></div>
+  </div>`;
+  el('modalHost').appendChild(modal);
+
+  const list = modal.querySelector('#sheetPickerList');
+  sheets.forEach(s=>{
+    const btn = document.createElement('button');
+    btn.className = 'ghost';
+    btn.style.marginBottom = '6px';
+    btn.textContent = s.name;
+    btn.addEventListener('click', ()=>{ applyCombatSheetToForm(s); modal.remove(); });
+    list.appendChild(btn);
+  });
+  modal.querySelector('#sheetPickerCancel').addEventListener('click', ()=> modal.remove());
+}
+
+function exportCombatSheet(){
+  const payload = readCombatSheetFromForm();
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${(payload.name || 'combattant').replace(/\s+/g,'_')}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function handleImportSheetFile(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const sheet = JSON.parse(reader.result);
+      applyCombatSheetToForm(sheet);
+    }catch(e){ showAlert('Fichier JSON invalide.'); }
+  };
+  reader.readAsText(file);
+  event.target.value = ''; // permet de réimporter le même fichier ensuite
+}
+
+// Remplace window.confirm()/alert(), souvent bloqués dans le bac à sable des artefacts.
+function showConfirm(message, onConfirm){
+  const modal = document.createElement('div');
+  modal.className='modal-overlay';
+  modal.innerHTML = `<div class="modal" style="max-width:380px;">
+    <p style="margin-bottom:18px; line-height:1.5;">${message}</p>
+    <div class="btnrow"><button class="primary" id="__confirmYes">Confirmer</button><button class="ghost" id="__confirmNo">Annuler</button></div>
+  </div>`;
+  el('modalHost').appendChild(modal);
+  el('__confirmYes').onclick = ()=>{ closeModal(); onConfirm(); };
+  el('__confirmNo').onclick = closeModal;
+  modal.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); closeModal(); onConfirm(); } });
+}
+function showAlert(message){
+  const modal = document.createElement('div');
+  modal.className='modal-overlay';
+  modal.innerHTML = `<div class="modal" style="max-width:380px;">
+    <p style="margin-bottom:18px; line-height:1.5;">${message}</p>
+    <div class="btnrow"><button class="primary" id="__alertOk">Compris</button></div>
+  </div>`;
+  el('modalHost').appendChild(modal);
+  el('__alertOk').onclick = closeModal;
+  modal.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); closeModal(); } });
+}
+
+function saveCombatantForm(id, isNew){
+  let c = isNew ? newCombatant() : state.combatants.find(x=>x.id===id);
+  c.name = el('f_name').value || 'Combattant';
+  c.side = el('f_side').value;
+  c.pvMax = parseInt(el('f_pvmax').value,10)||1;
+  c.pv = c.pvMax;
+  c.niveau = el('f_niveau').value;
+  c.quickMode = el('f_mode').value === 'quick';
+  c.quickTA = parseInt(el('f_quickTA').value,10)||1;
+  c.quickAtkBonus = parseInt(el('f_quickAtk').value,10)||0;
+  CARACS.forEach(k=> c.carac[k] = parseInt(el('f_'+k).value,10)||0);
+  c.mental = parseInt(el('f_mental').value,10)||0;
+  c.weaponType = el('f_weapon').value;
+  c.weaponChoice = el('f_choice').value;
+  c.weaponMastery = parseInt(el('f_mastery').value,10)||0;
+  c.esquive = parseInt(el('f_esquive').value,10)||0;
+  c.paradeSkill = parseInt(el('f_parade').value,10)||0;
+  c.weaponQuality = el('f_quality').value;
+  c.encombrement = parseInt(el('f_enc').value,10)||0;
+  if(isNew) state.combatants.push(c);
+  closeModal();
+  render();
+}
+
+el('btnAddCombatant').addEventListener('click', ()=>editCombatant(null));
+
+/* =========================================================================
+   INIT
+   ========================================================================= */
+(async function init(){
+  await loadState();
+  suppressNextSave = true; // le premier render ne doit pas réécrire ce qu'on vient de lire
+  render();
+})();
+</script>
+</body>
+</html>

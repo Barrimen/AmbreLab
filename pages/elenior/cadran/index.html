@@ -603,7 +603,7 @@ function renderCombatants(){
       <div class="mini-actions">
         <button onclick="editCombatant('${c.id}')">Modifier</button>
         <button onclick="quickSwapWeapon('${c.id}')">🗡️ Arme</button>
-        <button onclick="toggleHidden('${c.id}')">${c.hidden?'👁 Révéler':'🙈 Masquer'}</button>
+        ${isMJ ? `<button onclick="toggleHidden('${c.id}')">${c.hidden?'👁 Révéler':'🙈 Masquer'}</button>` : ''}
         <button class="danger" onclick="removeCombatant('${c.id}')">Retirer</button>
       </div>
     </div>`;

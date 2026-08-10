@@ -1,0 +1,19 @@
+{
+  "Arcanique":      {"Acide":1.5,"Air":1,"Bois":1.5,"Chair":1.5,"Electricite":1,"Feu/Chaleur":3,"Glace/Froid":3,"Eau":1.5,"Lumiere":1,"Metal":3,"Son":2,"Terre":3.5},
+  "Psychomantique": {"Acide":3,"Air":1,"Bois":2,"Chair":1.5,"Electricite":1.5,"Feu/Chaleur":1,"Glace/Froid":1.5,"Eau":1,"Lumiere":1.5,"Metal":4,"Son":2.5,"Terre":3.5},
+  "Technomantique": {"Acide":1,"Air":1.5,"Bois":3,"Chair":2,"Electricite":1,"Feu/Chaleur":1,"Glace/Froid":1.5,"Eau":1,"Lumiere":2.5,"Metal":3.5,"Son":2,"Terre":3},
+  "Spirituelle":    {"Acide":2,"Air":1,"Bois":1.5,"Chair":1.5,"Electricite":1,"Feu/Chaleur":4,"Glace/Froid":3.5,"Eau":1,"Lumiere":1,"Metal":3,"Son":1.5,"Terre":2.5},
+  "Saltomancie":    {"Acide":1.5,"Air":1,"Bois":2,"Chair":4,"Electricite":1,"Feu/Chaleur":1.5,"Glace/Froid":1.5,"Eau":1.5,"Lumiere":1,"Metal":3.5,"Son":2,"Terre":3},
+  "Moniale":        {"Acide":3.5,"Air":2,"Bois":1,"Chair":2,"Electricite":2.5,"Feu/Chaleur":2,"Glace/Froid":4,"Eau":1,"Lumiere":1.5,"Metal":1,"Son":2.5,"Terre":1},
+  "Bestiale":       {"Acide":1,"Air":2.5,"Bois":2,"Chair":1,"Electricite":2,"Feu/Chaleur":1,"Glace/Froid":2.5,"Eau":3,"Lumiere":1.5,"Metal":2.5,"Son":1.5,"Terre":2.5},
+  "Technogestuelle":{"Acide":4,"Air":1,"Bois":1,"Chair":1,"Electricite":2,"Feu/Chaleur":2,"Glace/Froid":2,"Eau":3,"Lumiere":1.5,"Metal":1,"Son":3,"Terre":1},
+  "Rituelle":       {"Acide":1.5,"Air":4,"Bois":3.5,"Chair":1.5,"Electricite":3,"Feu/Chaleur":1,"Glace/Froid":1.5,"Eau":1,"Lumiere":1,"Metal":2.5,"Son":1,"Terre":2},
+  "Bardique":       {"Acide":3.5,"Air":1,"Bois":2,"Chair":3,"Electricite":1.5,"Feu/Chaleur":1.5,"Glace/Froid":4,"Eau":1.5,"Lumiere":1,"Metal":2.5,"Son":1,"Terre":1},
+  "Logomancie":     {"Acide":1.5,"Air":1.5,"Bois":4,"Chair":1.5,"Electricite":1,"Feu/Chaleur":1,"Glace/Froid":1,"Eau":1,"Lumiere":2.5,"Metal":2,"Son":3,"Terre":1},
+  "Precative":      {"Acide":1.5,"Air":4,"Bois":3.5,"Chair":1.5,"Electricite":3,"Feu/Chaleur":1,"Glace/Froid":1.5,"Eau":1,"Lumiere":1,"Metal":2.5,"Son":1,"Terre":2},
+  "Alchimie":       {"Acide":1,"Air":4,"Bois":3,"Chair":1,"Electricite":2,"Feu/Chaleur":1.5,"Glace/Froid":1,"Eau":1.5,"Lumiere":1.5,"Metal":3,"Son":1.5,"Terre":2.5},
+  "Plastique":      {"Acide":1.5,"Air":1.5,"Bois":1,"Chair":2,"Electricite":3,"Feu/Chaleur":4,"Glace/Froid":3.5,"Eau":1.5,"Lumiere":1,"Metal":1.5,"Son":2,"Terre":1},
+  "Enchantement":   {"Acide":2,"Air":2,"Bois":2,"Chair":2,"Electricite":2,"Feu/Chaleur":2,"Glace/Froid":2,"Eau":2,"Lumiere":2,"Metal":2,"Son":2,"Terre":2},
+  "Runique":        {"Acide":3.5,"Air":4,"Bois":1,"Chair":3,"Electricite":2.5,"Feu/Chaleur":1.5,"Glace/Froid":1,"Eau":1.5,"Lumiere":1.5,"Metal":1,"Son":1.5,"Terre":1},
+  "Scriptorale":    {"Acide":4,"Air":1,"Bois":1.5,"Chair":1,"Electricite":1,"Feu/Chaleur":1.5,"Glace/Froid":2,"Eau":1.5,"Lumiere":1,"Metal":2.5,"Son":3.5,"Terre":3}
+}

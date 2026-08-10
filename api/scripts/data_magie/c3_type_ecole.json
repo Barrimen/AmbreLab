@@ -1,0 +1,19 @@
+{
+  "Arcanique":      {"Abjuration":1,  "Alteration":1,  "Animation":2,  "Destruction":2,  "Divination":1.5,"Guerison":0.5,"Illusion":0.5,"Invocation":0.5,"Transmutation":1.5},
+  "Psychomantique": {"Abjuration":0.5,"Alteration":2,  "Animation":1.5,"Destruction":1,  "Divination":0.5,"Guerison":1,  "Illusion":0.5,"Invocation":1.5,"Transmutation":2},
+  "Technomantique": {"Abjuration":0.5,"Alteration":0.5,"Animation":2,  "Destruction":1,  "Divination":1.5,"Guerison":2,  "Illusion":1.5,"Invocation":0.5,"Transmutation":1},
+  "Spirituelle":    {"Abjuration":0.5,"Alteration":1,  "Animation":1.5,"Destruction":2,  "Divination":0.5,"Guerison":2,  "Illusion":1,  "Invocation":0.5,"Transmutation":1.5},
+  "Saltomancie":    {"Abjuration":0.5,"Alteration":1,  "Animation":2,  "Destruction":1,  "Divination":0.5,"Guerison":1.5,"Illusion":0.5,"Invocation":1.5,"Transmutation":2},
+  "Moniale":        {"Abjuration":0.5,"Alteration":1,  "Animation":1.5,"Destruction":2,  "Divination":0.5,"Guerison":1,  "Illusion":2,  "Invocation":1.5,"Transmutation":0.5},
+  "Bestiale":       {"Abjuration":2,  "Alteration":0.5,"Animation":2,  "Destruction":0.5,"Divination":1.5,"Guerison":1,  "Illusion":1.5,"Invocation":0.5,"Transmutation":1},
+  "Technogestuelle":{"Abjuration":1.5,"Alteration":0.5,"Animation":2,  "Destruction":0.5,"Divination":1.5,"Guerison":1,  "Illusion":1.5,"Invocation":0.5,"Transmutation":1.5},
+  "Rituelle":       {"Abjuration":1,  "Alteration":0.5,"Animation":2,  "Destruction":2,  "Divination":0.5,"Guerison":1.5,"Illusion":1.5,"Invocation":1,  "Transmutation":0.5},
+  "Bardique":       {"Abjuration":0.5,"Alteration":1,  "Animation":0.5,"Destruction":2,  "Divination":1.5,"Guerison":1.5,"Illusion":0.5,"Invocation":2,  "Transmutation":1},
+  "Logomancie":     {"Abjuration":1,  "Alteration":2,  "Animation":1,  "Destruction":1.5,"Divination":0.5,"Guerison":1,  "Illusion":0.5,"Invocation":1.5,"Transmutation":1.5},
+  "Precative":      {"Abjuration":1.5,"Alteration":1.5,"Animation":1,  "Destruction":2,  "Divination":0.5,"Guerison":0.5,"Illusion":1,  "Invocation":2,  "Transmutation":0.5},
+  "Alchimie":       {"Abjuration":2,  "Alteration":0.5,"Animation":2,  "Destruction":2,  "Divination":1,  "Guerison":0.5,"Illusion":1,  "Invocation":1,  "Transmutation":0.5},
+  "Plastique":      {"Abjuration":0.5,"Alteration":1.5,"Animation":2,  "Destruction":1,  "Divination":0.5,"Guerison":1.5,"Illusion":0.5,"Invocation":2,  "Transmutation":1},
+  "Enchantement":   {"Abjuration":1,  "Alteration":0.5,"Animation":2,  "Destruction":1.5,"Divination":1,  "Guerison":1,  "Illusion":1,  "Invocation":0.5,"Transmutation":1.5},
+  "Runique":        {"Abjuration":2,  "Alteration":0.5,"Animation":0.5,"Destruction":1.5,"Divination":2,  "Guerison":1,  "Illusion":1.5,"Invocation":0.5,"Transmutation":1},
+  "Scriptorale":    {"Abjuration":1,  "Alteration":1.5,"Animation":1,  "Destruction":2,  "Divination":1.5,"Guerison":1,  "Illusion":0.5,"Invocation":1.5,"Transmutation":0.5}
+}

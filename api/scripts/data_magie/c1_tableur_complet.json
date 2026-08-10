@@ -1,0 +1,134 @@
+{
+  "Acide": {
+    "Abjuration": 1,
+    "Altération": 0.5,
+    "Animation": 1.5,
+    "Destruction": 0.5,
+    "Divination": 1.5,
+    "Guérison": 1,
+    "Illusion": 1.5,
+    "Invocation": 1,
+    "Transmutation": 0.5
+  },
+  "Air": {
+    "Abjuration": 1,
+    "Altération": 0.5,
+    "Animation": 1.5,
+    "Destruction": 1.5,
+    "Divination": 0.5,
+    "Guérison": 1,
+    "Illusion": 1,
+    "Invocation": 0.5,
+    "Transmutation": 1.5
+  },
+  "Bois": {
+    "Abjuration": 1.5,
+    "Altération": 0.5,
+    "Animation": 0.5,
+    "Destruction": 1,
+    "Divination": 1.5,
+    "Guérison": 0.5,
+    "Illusion": 1.5,
+    "Invocation": 0.5,
+    "Transmutation": 1
+  },
+  "Chair": {
+    "Abjuration": 1.5,
+    "Altération": 0.5,
+    "Animation": 0.5,
+    "Destruction": 1,
+    "Divination": 1,
+    "Guérison": 0.5,
+    "Illusion": 1,
+    "Invocation": 1.5,
+    "Transmutation": 1.5
+  },
+  "Electricité": {
+    "Abjuration": 1,
+    "Altération": 0.5,
+    "Animation": 1.5,
+    "Destruction": 1,
+    "Divination": 1.5,
+    "Guérison": 1,
+    "Illusion": 0.5,
+    "Invocation": 0.5,
+    "Transmutation": 1.5
+  },
+  "Feu/Chaleur": {
+    "Abjuration": 1.5,
+    "Altération": 1,
+    "Animation": 1.5,
+    "Destruction": 0.5,
+    "Divination": 0.5,
+    "Guérison": 1,
+    "Illusion": 1,
+    "Invocation": 0.5,
+    "Transmutation": 1.5
+  },
+  "Glace/Froid": {
+    "Abjuration": 0.5,
+    "Altération": 1,
+    "Animation": 1,
+    "Destruction": 1,
+    "Divination": 1.5,
+    "Guérison": 1.5,
+    "Illusion": 1.5,
+    "Invocation": 0.5,
+    "Transmutation": 0.5
+  },
+  "Eau": {
+    "Abjuration": 1.5,
+    "Altération": 0.5,
+    "Animation": 1.5,
+    "Destruction": 1,
+    "Divination": 0.5,
+    "Guérison": 1,
+    "Illusion": 1.5,
+    "Invocation": 0.5,
+    "Transmutation": 1
+  },
+  "Lumière": {
+    "Abjuration": 0.5,
+    "Altération": 1.5,
+    "Animation": 1.5,
+    "Destruction": 1.5,
+    "Divination": 1,
+    "Guérison": 0.5,
+    "Illusion": 0.5,
+    "Invocation": 1,
+    "Transmutation": 1
+  },
+  "Métal": {
+    "Abjuration": 1.5,
+    "Altération": 0.5,
+    "Animation": 1,
+    "Destruction": 0.5,
+    "Divination": 1.5,
+    "Guérison": 1,
+    "Illusion": 1.5,
+    "Invocation": 1,
+    "Transmutation": 0.5
+  },
+  "Son": {
+    "Abjuration": 0.5,
+    "Altération": 1.5,
+    "Animation": 1.5,
+    "Destruction": 1,
+    "Divination": 0.5,
+    "Guérison": 1,
+    "Illusion": 0.5,
+    "Invocation": 1,
+    "Transmutation": 1.5
+  },
+  "Terre": {
+    "Abjuration": 1.5,
+    "Altération": 0.5,
+    "Animation": 0.5,
+    "Destruction": 1.5,
+    "Divination": 1,
+    "Guérison": 1,
+    "Illusion": 1.5,
+    "Invocation": 1,
+    "Transmutation": 0.5
+  }
+}

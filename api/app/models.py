@@ -289,6 +289,12 @@ class CharacterSpecialSkillCreate(CharacterSpecialSkillBase):
     pass
 
 
+# NOTE (10/08/2026) : coexiste désormais avec la table Sort du système de
+# magie complet (app/models_magie.py) - Sort calcule Coût/Cast à partir des
+# tables de règles (aspects/écoles/type), alors que CharacterSpell reste un
+# résumé en texte libre sur la fiche de personnage. Décision Obe (option 1) :
+# les deux restent actives telles quelles pour l'instant, fusion éventuelle
+# à traiter plus tard dans sa propre conversation.
 class CharacterSpellBase(SQLModel):
     name: str
     ecole: Optional[str] = None

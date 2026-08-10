@@ -1,0 +1,19 @@
+{
+  "Arcanique":      {"C4":1,   "C5":1},
+  "Psychomantique": {"C4":1,   "C5":1},
+  "Technomantique": {"C4":1.1, "C5":0.9},
+  "Spirituelle":    {"C4":1,   "C5":1},
+  "Saltomancie":    {"C4":1.1, "C5":0.9},
+  "Moniale":        {"C4":1.2, "C5":0.8},
+  "Bestiale":       {"C4":1.4, "C5":0.6},
+  "Technogestuelle":{"C4":1.2, "C5":0.8},
+  "Rituelle":       {"C4":0.8, "C5":1.2},
+  "Bardique":       {"C4":0.9, "C5":1.1},
+  "Logomancie":     {"C4":0.8, "C5":1.2},
+  "Precative":      {"C4":1,   "C5":1},
+  "Alchimie":       {"C4":1,   "C5":2},
+  "Plastique":      {"C4":1,   "C5":1},
+  "Enchantement":   {"C4":1.4, "C5":2},
+  "Runique":        {"C4":0.8, "C5":1.5},
+  "Scriptorale":    {"C4":0.8, "C5":1.5}
+}

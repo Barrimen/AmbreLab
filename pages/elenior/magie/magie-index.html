@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grimoire des Sorts — Elénior</title>
+<link rel="stylesheet" href="../tokens.css">
+<style>
+/* Variables de couleurs/polices Elénior : voir pages/elenior/tokens.css
+   (chargé via <link> ci-dessus). Styles ci-dessous repris à l'identique du
+   Cadran des Trente Temps et de la Fiche de personnage pour rester dans la
+   même famille visuelle ("grimoire alchimique") plutôt que d'inventer un
+   nouveau langage graphique pour ce 3e outil. */
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--ink);color:var(--parchment);}
+body{
+  font-family:'Spectral',serif;
+  background:
+    radial-gradient(1200px 600px at 15% -10%, rgba(192,132,66,0.08), transparent 60%),
+    radial-gradient(1000px 500px at 110% 10%, rgba(95,148,132,0.08), transparent 60%),
+    var(--ink);
+  min-height:100vh;
+  padding:28px 20px 60px;
+}
+h1,h2,h3{font-family:'Cinzel',serif; letter-spacing:0.03em; margin:0;}
+.mono{font-family:'IBM Plex Mono',monospace;}
+.wrap{max-width:1180px;margin:0 auto;}
+
+header.top{
+  display:flex; align-items:baseline; justify-content:space-between;
+  border-bottom:1px solid var(--line); padding-bottom:16px; margin-bottom:22px;
+  flex-wrap:wrap; gap:10px;
+}
+header.top h1{font-size:26px; color:var(--parchment); font-weight:700;}
+header.top h1 span{color:var(--copper);}
+.subtitle{font-size:12.5px; color:var(--parchment-dim); font-style:italic; margin-top:4px;}
+
+.grid{display:grid; grid-template-columns: 1fr 1fr; gap:22px;}
+@media (max-width:920px){ .grid{grid-template-columns:1fr;} }
+
+.panel{
+  background:linear-gradient(180deg, var(--ink-2), var(--ink-3));
+  border:1px solid var(--line);
+  border-radius:6px;
+  padding:16px 16px 18px;
+}
+.panel + .panel{margin-top:18px;}
+.panel h2{font-size:15px; color:var(--copper); margin-bottom:12px; text-transform:uppercase; letter-spacing:0.06em;}
+.panel h2 small{color:var(--parchment-dim); font-family:'Spectral'; text-transform:none; letter-spacing:0; font-style:italic; font-size:11.5px;}
+
+button{
+  font-family:'Cinzel',serif; font-size:11.5px; letter-spacing:0.05em; text-transform:uppercase;
+  background:transparent; color:var(--parchment); border:1px solid var(--copper-dim);
+  padding:9px 14px; border-radius:2px; cursor:pointer; transition:all .15s ease;
+}
+button:hover{background:rgba(192,132,66,0.12); border-color:var(--copper);}
+button.primary{background:var(--copper); color:var(--ink); border-color:var(--copper); font-weight:700;}
+button.primary:hover{background:#D69856;}
+button.ghost{border-color:var(--line); color:var(--parchment-dim);}
+button.danger{border-color:var(--blood); color:var(--blood);}
+button.danger:hover{background:rgba(168,64,75,0.15);}
+button:disabled{opacity:0.35; cursor:not-allowed;}
+button:focus-visible, input:focus-visible, select:focus-visible{outline:2px solid var(--gold); outline-offset:1px;}
+.btnrow{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;}
+
+label{display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--parchment-dim); margin-bottom:4px;}
+input,select,textarea{
+  width:100%; background:var(--ink); border:1px solid var(--line); color:var(--parchment);
+  padding:7px 8px; border-radius:2px; font-family:'Spectral'; font-size:13.5px;
+}
+textarea{font-family:'Spectral'; min-height:60px; resize:vertical;}
+.field{margin-bottom:10px;}
+.field-row{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+.field-row3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;}
+.hint{font-size:11px; color:var(--parchment-dim); font-style:italic; margin-top:3px; line-height:1.4;}
+
+fieldset{border:1px dashed var(--line); border-radius:4px; padding:10px 10px 4px; margin:0 0 14px;}
+fieldset legend{font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--copper); padding:0 6px;}
+
+/* ---------- Résultat du calcul ---------- */
+.resultat{border:1px solid var(--copper-dim); border-radius:5px; padding:16px 18px; margin-top:14px; background:rgba(192,132,66,0.06);}
+.resultat.vide{border-style:dashed; border-color:var(--line); background:transparent; color:var(--parchment-dim); font-style:italic; text-align:center;}
+.resultat-row{display:flex; justify-content:space-between; align-items:baseline; padding:6px 0; border-bottom:1px dashed var(--line);}
+.resultat-row:last-child{border-bottom:none;}
+.resultat-row .val{font-family:'IBM Plex Mono'; font-size:20px; color:var(--gold);}
+.constantes-detail{margin-top:10px; font-size:11px; color:var(--parchment-dim); font-family:'IBM Plex Mono'; line-height:1.7;}
+.erreur{color:var(--blood); font-size:12.5px; margin-top:8px;}
+
+/* ---------- Bibliothèque de sorts ---------- */
+.sort-card{
+  border:1px solid var(--line); border-radius:4px; padding:12px 14px; margin-bottom:10px;
+  background:rgba(0,0,0,0.15);
+}
+.sort-top{display:flex; justify-content:space-between; align-items:baseline; gap:10px; flex-wrap:wrap;}
+.sort-nom{font-family:'Cinzel'; font-size:14.5px; color:var(--parchment);}
+.sort-tag{font-size:9.5px; text-transform:uppercase; letter-spacing:0.05em; padding:2px 6px; border-radius:2px; border:1px solid var(--verdigris); color:var(--verdigris);}
+.sort-meta{font-size:11.5px; color:var(--parchment-dim); margin-top:4px;}
+.sort-chiffres{display:flex; gap:16px; margin-top:8px; font-family:'IBM Plex Mono'; font-size:13px;}
+.sort-chiffres b{color:var(--gold);}
+.sort-notes{font-size:12px; color:var(--parchment-dim); margin-top:6px; font-style:italic;}
+.sort-actions{margin-top:8px; display:flex; gap:6px;}
+.lib-vide{color:var(--parchment-dim); font-style:italic; text-align:center; padding:20px 0;}
+
+select[multiple]{min-height:90px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>Grimoire des <span>Sorts</span></h1>
+      <div class="subtitle">Calcul du Coût et du Cast — équations du livre des règles (Chapitre IV, La Magie)</div>
+    </div>
+    <div class="field" style="min-width:220px;margin-bottom:0;">
+      <label>Personnage</label>
+      <select id="sel-personnage"></select>
+    </div>
+  </header>
+
+  <div class="grid">
+
+    <!-- ============ COLONNE GAUCHE : CALCULATEUR ============ -->
+    <div>
+      <div class="panel">
+        <h2>Composer un sort <small>les constantes C1-C7 sont résolues côté serveur</small></h2>
+
+        <div class="field">
+          <label>Nom du sort</label>
+          <input type="text" id="f-nom" placeholder="Peau d'emprunt">
+        </div>
+
+        <div class="field">
+          <label>Type de magie</label>
+          <select id="f-type"></select>
+        </div>
+
+        <fieldset>
+          <legend>Aspects (1 à 3)</legend>
+          <div class="field-row3">
+            <div><label>Aspect 1</label><select id="f-aspect1"></select></div>
+            <div><label>Aspect 2</label><select id="f-aspect2"><option value="">—</option></select></div>
+            <div><label>Aspect 3</label><select id="f-aspect3"><option value="">—</option></select></div>
+          </div>
+          <div class="hint">Un sort à plusieurs Aspects prend la valeur C1/C2 la plus haute parmi eux (règle du livre, p.145).</div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Écoles (1 à 3)</legend>
+          <div class="field-row3">
+            <div><label>École 1</label><select id="f-ecole1"></select></div>
+            <div><label>École 2</label><select id="f-ecole2"><option value="">—</option></select></div>
+            <div><label>École 3</label><select id="f-ecole3"><option value="">—</option></select></div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Puissance du sort</legend>
+          <div class="field-row">
+            <div><label>Pi — puissance immédiate</label><input type="number" id="f-pi" value="0" step="0.5"></div>
+            <div><label>Pd — puissance dans la durée</label><input type="number" id="f-pd" value="0" step="0.5"></div>
+          </div>
+          <div class="field-row">
+            <div><label>En — entrave</label><input type="number" id="f-en" value="0" step="0.5"></div>
+            <div><label>Ex — contrôle d'action</label><input type="number" id="f-ex" value="0" step="0.5"></div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Ciblage</legend>
+          <div class="field-row3">
+            <div><label>Nb — cibles</label><input type="number" id="f-nb" value="1" step="0.5"></div>
+            <div><label>Tz — taille de zone</label><input type="number" id="f-tz" value="0" step="0.1"></div>
+            <div><label>Z — forme de zone</label><input type="number" id="f-z" value="1" step="0.1"></div>
+          </div>
+          <div class="field">
+            <label>Po — portée (ignorée si Long-sort)</label>
+            <input type="number" id="f-po" value="0" step="0.1">
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Personnage</legend>
+          <div class="field-row">
+            <div><label>Cm — carac. magique ÷ 10</label><input type="number" id="f-cm" value="0" step="0.1"></div>
+            <div><label>Niveau de Type</label><input type="number" id="f-niveau-type" value="0" step="0.25"></div>
+          </div>
+          <div class="field">
+            <label>Niveaux d'Aspect (un par Aspect choisi, séparés par des virgules)</label>
+            <input type="text" id="f-niveaux-aspect" value="0" placeholder="ex : 5.25 ou 5.25, 4">
+          </div>
+          <label style="display:flex;align-items:center;gap:6px;text-transform:none;font-size:12.5px;">
+            <input type="checkbox" id="f-long-sort" style="width:auto;">
+            Ce sort est un Long-sort (remplace le Cast — Alchimie notamment)
+          </label>
+        </fieldset>
+
+        <div class="btnrow">
+          <button class="primary" id="btn-calculer">Calculer</button>
+        </div>
+
+        <div id="zone-resultat" class="resultat vide">Renseigne un sort puis clique sur Calculer.</div>
+
+        <div class="btnrow">
+          <button id="btn-sauver" disabled>Ajouter à la bibliothèque</button>
+        </div>
+        <div class="hint">Le calcul doit réussir avant de pouvoir sauvegarder — le Coût/Cast enregistrés sont ceux du dernier calcul.</div>
+      </div>
+    </div>
+
+    <!-- ============ COLONNE DROITE : BIBLIOTHÈQUE ============ -->
+    <div>
+      <div class="panel">
+        <h2>Bibliothèque de la campagne <small>tous personnages confondus</small></h2>
+        <div id="zone-bibliotheque">
+          <div class="lib-vide">Chargement…</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+   CONFIG AMBRELAB — API commune
+   ========================================================================= */
+const API_BASE = 'https://api.ambrelab.com';
+const CAMPAIGN_ID = 1; // Elénior — même convention que le Cadran et la Fiche
+
+/* =========================================================================
+   DONNÉES DE RÈGLES — listes fixes pour peupler les menus déroulants.
+   Ce ne sont QUE des libellés d'interface : les vraies valeurs de calcul
+   (C1-C7) vivent en base et sont résolues côté API (/magie/calculer),
+   jamais recalculées ici. Source : livre "Les Compagnons de l'Infortune
+   2026", chapitre IV.
+   ========================================================================= */
+const TYPES_MAGIE = [
+  'Arcanique','Psychomantique','Technomantique','Spirituelle',
+  'Saltomancie','Moniale','Bestiale','Technogestuelle','Rituelle',
+  'Bardique','Logomancie','Précative',
+  'Alchimie','Plastique','Enchantement','Runique','Scriptorale',
+];
+const ASPECTS_MAGIE = [
+  'Acide','Air','Bois','Chair','Électricité','Feu/Chaleur',
+  'Glace/Froid','Eau','Lumière','Métal','Son','Terre',
+];
+const ECOLES_MAGIE = [
+  'Abjuration','Altération','Animation','Destruction','Divination',
+  'Guérison','Illusion','Invocation','Transmutation',
+];
+
+/* =========================================================================
+   APPELS API — mêmes helpers que sur les autres apps Elénior
+   ========================================================================= */
+async function api(path, opts = {}) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+  });
+  if (!res.ok) {
+    let detail = res.statusText;
+    try { const j = await res.json(); detail = j.detail || detail; } catch (e) { /* pas de corps JSON */ }
+    throw new Error(`${res.status} ${detail}`);
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
+const apiGet = (path) => api(path);
+const apiPost = (path, body) => api(path, { method: 'POST', body: JSON.stringify(body) });
+const apiDelete = (path) => api(path, { method: 'DELETE' });
+
+function el(tag, attrs = {}, ...enfants) {
+  const e = document.createElement(tag);
+  for (const k in attrs) {
+    if (attrs[k] === undefined || attrs[k] === null) continue;
+    if (k === 'class') e.className = attrs[k];
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), attrs[k]);
+    else e.setAttribute(k, attrs[k]);
+  }
+  enfants.forEach((c) => {
+    if (typeof c === 'string') e.appendChild(document.createTextNode(c));
+    else if (c) e.appendChild(c);
+  });
+  return e;
+}
+
+/* =========================================================================
+   ÉTAT
+   ========================================================================= */
+const etat = {
+  personnages: [],
+  personnageId: null,
+  dernierCalcul: null, // { requete, reponse } — nécessaire pour la sauvegarde
+};
+
+/* =========================================================================
+   INITIALISATION DES MENUS
+   ========================================================================= */
+function peuplerSelect(select, options, avecVide) {
+  if (avecVide) select.appendChild(el('option', { value: '' }, '—'));
+  options.forEach((o) => select.appendChild(el('option', { value: o }, o)));
+}
+peuplerSelect(document.getElementById('f-type'), TYPES_MAGIE, false);
+peuplerSelect(document.getElementById('f-aspect1'), ASPECTS_MAGIE, false);
+// aspect2/aspect3/ecole2/ecole3 ont déjà leur option vide "—" dans le HTML
+// (voir <select id="f-aspect2"><option value="">—</option></select>) : on
+// ajoute seulement les options de données ici, sans la retirer/reposer.
+peuplerSelect(document.getElementById('f-aspect2'), ASPECTS_MAGIE, false);
+peuplerSelect(document.getElementById('f-aspect3'), ASPECTS_MAGIE, false);
+peuplerSelect(document.getElementById('f-ecole1'), ECOLES_MAGIE, false);
+peuplerSelect(document.getElementById('f-ecole2'), ECOLES_MAGIE, false);
+peuplerSelect(document.getElementById('f-ecole3'), ECOLES_MAGIE, false);
+
+/* =========================================================================
+   CHARGEMENT DES PERSONNAGES DE LA CAMPAGNE
+   ========================================================================= */
+async function chargerPersonnages() {
+  const sel = document.getElementById('sel-personnage');
+  try {
+    etat.personnages = await apiGet(`/campaigns/${CAMPAIGN_ID}/characters`);
+  } catch (e) {
+    sel.innerHTML = '';
+    sel.appendChild(el('option', {}, 'Erreur de chargement'));
+    return;
+  }
+  sel.innerHTML = '';
+  if (etat.personnages.length === 0) {
+    sel.appendChild(el('option', {}, 'Aucun personnage dans cette campagne'));
+    return;
+  }
+  etat.personnages.forEach((p) => {
+    sel.appendChild(el('option', { value: p.id }, p.name || `Personnage #${p.id}`));
+  });
+  etat.personnageId = Number(sel.value);
+  sel.addEventListener('change', () => { etat.personnageId = Number(sel.value); });
+}
+
+/* =========================================================================
+   LECTURE DU FORMULAIRE
+   ========================================================================= */
+function lireAspectsChoisis() {
+  return ['f-aspect1', 'f-aspect2', 'f-aspect3']
+    .map((id) => document.getElementById(id).value)
+    .filter((v) => v !== '');
+}
+function lireEcolesChoisies() {
+  return ['f-ecole1', 'f-ecole2', 'f-ecole3']
+    .map((id) => document.getElementById(id).value)
+    .filter((v) => v !== '');
+}
+function lireNiveauxAspect() {
+  return document.getElementById('f-niveaux-aspect').value
+    .split(',')
+    .map((s) => parseFloat(s.trim()))
+    .filter((n) => !Number.isNaN(n));
+}
+function num(id) {
+  return parseFloat(document.getElementById(id).value) || 0;
+}
+
+function construireRequeteCalcul() {
+  const aspects = lireAspectsChoisis();
+  const ecoles = lireEcolesChoisies();
+  const niveauxAspect = lireNiveauxAspect();
+
+  if (aspects.length === 0) throw new Error('Choisis au moins un Aspect.');
+  if (ecoles.length === 0) throw new Error('Choisis au moins une École.');
+  if (niveauxAspect.length !== aspects.length) {
+    throw new Error(`Il faut exactement ${aspects.length} niveau(x) d'Aspect (séparés par des virgules), un par Aspect choisi.`);
+  }
+
+  return {
+    type_magie: document.getElementById('f-type').value,
+    aspects, ecoles,
+    pi: num('f-pi'), pd: num('f-pd'), en: num('f-en'), ex: num('f-ex'),
+    nb: num('f-nb'), tz: num('f-tz'), z: num('f-z'), po: num('f-po'),
+    cm: num('f-cm'),
+    niveau_aspects: niveauxAspect,
+    niveau_type: num('f-niveau-type'),
+    est_long_sort: document.getElementById('f-long-sort').checked,
+  };
+}
+
+/* =========================================================================
+   CALCUL
+   ========================================================================= */
+async function calculer() {
+  const zone = document.getElementById('zone-resultat');
+  const btnSauver = document.getElementById('btn-sauver');
+  btnSauver.disabled = true;
+  etat.dernierCalcul = null;
+
+  let requete;
+  try {
+    requete = construireRequeteCalcul();
+  } catch (e) {
+    zone.className = 'resultat';
+    zone.innerHTML = '';
+    zone.appendChild(el('div', { class: 'erreur' }, e.message));
+    return;
+  }
+
+  zone.className = 'resultat vide';
+  zone.textContent = 'Calcul en cours…';
+
+  try {
+    const reponse = await apiPost('/magie/calculer', requete);
+    etat.dernierCalcul = { requete, reponse };
+
+    zone.className = 'resultat';
+    zone.innerHTML = '';
+    zone.appendChild(el('div', { class: 'resultat-row' },
+      el('span', {}, 'Coût'),
+      el('span', { class: 'val' }, `${reponse.cout_pp.toFixed(2)} PP`)
+    ));
+    if (requete.est_long_sort) {
+      zone.appendChild(el('div', { class: 'resultat-row' },
+        el('span', {}, 'Cast'),
+        el('span', { class: 'val' }, 'Long-sort — choisir un palier dans la table dédiée')
+      ));
+    } else {
+      zone.appendChild(el('div', { class: 'resultat-row' },
+        el('span', {}, 'Cast'),
+        el('span', { class: 'val' }, reponse.cast.toFixed(4))
+      ));
+    }
+    const c = reponse.constantes_utilisees;
+    zone.appendChild(el('div', { class: 'constantes-detail' },
+      `C1=${c.c1} · C2=${c.c2} · C3=${c.c3} · C4=${c.c4} · C5=${c.c5} · C6=${c.c6} · C7=${c.c7}`
+    ));
+
+    btnSauver.disabled = false;
+  } catch (e) {
+    zone.className = 'resultat';
+    zone.innerHTML = '';
+    zone.appendChild(el('div', { class: 'erreur' }, `Échec du calcul : ${e.message}`));
+  }
+}
+document.getElementById('btn-calculer').addEventListener('click', calculer);
+
+/* =========================================================================
+   SAUVEGARDE DANS LA BIBLIOTHÈQUE
+   ========================================================================= */
+async function sauverSort() {
+  if (!etat.dernierCalcul) return;
+  if (!etat.personnageId) { alert('Choisis un personnage avant de sauvegarder.'); return; }
+
+  const { requete, reponse } = etat.dernierCalcul;
+  const nom = document.getElementById('f-nom').value.trim();
+  if (!nom) { alert('Donne un nom au sort avant de le sauvegarder.'); return; }
+
+  const payload = {
+    campaign_id: CAMPAIGN_ID,
+    character_id: etat.personnageId,
+    nom,
+    type_magie: requete.type_magie,
+    aspects: requete.aspects,
+    ecoles: requete.ecoles,
+    composants: requete,
+    cout_pp: reponse.cout_pp,
+    cast_ou_long_sort: requete.est_long_sort ? null : reponse.cast,
+    est_long_sort: requete.est_long_sort,
+    notes: '',
+  };
+
+  try {
+    await apiPost('/magie/sorts', payload);
+    await chargerBibliotheque();
+    document.getElementById('btn-sauver').disabled = true;
+  } catch (e) {
+    alert(`Échec de la sauvegarde : ${e.message}`);
+  }
+}
+document.getElementById('btn-sauver').addEventListener('click', sauverSort);
+
+/* =========================================================================
+   BIBLIOTHÈQUE — liste des sorts de la campagne (pas de filtre par joueur,
+   décision Obe du 09/08/2026 — tout le monde voit tous les sorts, comme
+   pour les personnages)
+   ========================================================================= */
+async function chargerBibliotheque() {
+  const zone = document.getElementById('zone-bibliotheque');
+  zone.innerHTML = '';
+  let sorts;
+  try {
+    sorts = await apiGet(`/magie/sorts?campaign_id=${CAMPAIGN_ID}`);
+  } catch (e) {
+    zone.appendChild(el('div', { class: 'erreur' }, `Impossible de charger la bibliothèque : ${e.message}`));
+    return;
+  }
+  if (sorts.length === 0) {
+    zone.appendChild(el('div', { class: 'lib-vide' }, 'Aucun sort enregistré dans cette campagne pour l\'instant.'));
+    return;
+  }
+  sorts.forEach((sort) => {
+    const nomPersonnage = (etat.personnages.find((p) => p.id === sort.character_id) || {}).name || `Personnage #${sort.character_id}`;
+    const carte = el('div', { class: 'sort-card' });
+    carte.appendChild(el('div', { class: 'sort-top' },
+      el('span', { class: 'sort-nom' }, sort.nom),
+      el('span', { class: 'sort-tag' }, sort.type_magie)
+    ));
+    carte.appendChild(el('div', { class: 'sort-meta' },
+      `${sort.aspects.join(' + ')} · ${sort.ecoles.join(' + ')} · ${nomPersonnage}`
+    ));
+    carte.appendChild(el('div', { class: 'sort-chiffres' },
+      el('span', {}, 'Coût ', el('b', {}, `${sort.cout_pp.toFixed(2)} PP`)),
+      el('span', {}, sort.est_long_sort ? 'Long-sort' : 'Cast ', !sort.est_long_sort && el('b', {}, sort.cast_ou_long_sort.toFixed(4)))
+    ));
+    if (sort.notes) {
+      carte.appendChild(el('div', { class: 'sort-notes' }, sort.notes));
+    }
+    const btnSup = el('button', { class: 'danger' }, 'Supprimer');
+    btnSup.addEventListener('click', async () => {
+      if (!confirm(`Supprimer le sort « ${sort.nom} » ?`)) return;
+      try {
+        await apiDelete(`/magie/sorts/${sort.id}`);
+        await chargerBibliotheque();
+      } catch (e) {
+        alert(`Échec de la suppression : ${e.message}`);
+      }
+    });
+    carte.appendChild(el('div', { class: 'sort-actions' }, btnSup));
+    zone.appendChild(carte);
+  });
+}
+
+/* =========================================================================
+   DÉMARRAGE
+   ========================================================================= */
+(async function demarrer() {
+  await chargerPersonnages();
+  await chargerBibliotheque();
+})();
+</script>
+</body>
+</html>

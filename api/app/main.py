@@ -37,6 +37,14 @@ from .utils import (
     generate_download_url,
 )
 
+# Système de magie d'Elénior (ajouté le 10/08/2026) : routes regroupées dans
+# leur propre module (voir app/routes_magie.py), inclus ci-dessous via
+# app.include_router(). Importer ce module a aussi pour effet d'enregistrer
+# les tables magie_* et Sort dans SQLModel.metadata (via son propre import de
+# .models_magie), donc create_db_and_tables() les crée sans configuration
+# supplémentaire.
+from .routes_magie import router as magie_router
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -59,6 +67,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Système de magie d'Elénior : voir app/routes_magie.py (préfixe /magie,
+# health check dédié sur /magie/health en plus de /health global).
+app.include_router(magie_router)
 
 
 @app.get("/health")

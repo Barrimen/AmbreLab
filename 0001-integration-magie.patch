@@ -1,0 +1,3204 @@
+From 91d9141c44c165b541132119a0615a9b21cf59b0 Mon Sep 17 00:00:00 2001
+From: "Claude (session AmbreLab)" <claude@ambrelab.local>
+Date: Mon, 10 Aug 2026 21:37:06 +0000
+Subject: [PATCH] =?UTF-8?q?Int=C3=A8gre=20le=20syst=C3=A8me=20de=20magie?=
+ =?UTF-8?q?=20d'El=C3=A9nior=20(constantes=20C1-C7,=20calcul=20Co=C3=BBt/C?=
+ =?UTF-8?q?ast,=20CRUD=20Sort)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- api/app/models_magie.py : 35 tables (7 constantes C1-C7, 24 tables génériques
+  palier/valeur, entraves, table de jeu Sort)
+- api/app/resolution_magie.py : résolution des constantes C1-C7 depuis Postgres,
+  normalisation accents (bug réel corrigé le 09/08/2026)
+- api/app/utils_magie.py : formules pures Coût/Cast (livre p.126, verbatim,
+  décision du 09/08/2026 de suivre le livre plutôt que le tableur d'Elise)
+- api/app/routes_magie.py : router /magie (calcul à la volée + CRUD sorts,
+  filtré campaign_id)
+- api/scripts/data_magie/*.json + import_constantes_magie.py : données et
+  script d'import idempotent
+- pages/elenior/magie/magie-index.html, pages/elenior/tokens.css
+- api/app/main.py : include_router(magie_router), aucune autre route touchée
+- api/app/models.py : note de coexistence temporaire CharacterSpell/Sort
+  (décision Obe : option 1, fusion éventuelle plus tard)
+- Nettoyage : suppression de test.txt et du fichier fantôme 'app' à la racine
+
+Testé : py_compile sur tous les fichiers touchés, TestClient avec lifespan
+réel (health checks + routes magie répondent 200, tables créées sans erreur
+SQL), auto-test de non-régression des formules Coût/Cast, 41 JSON validés.
+---
+ api/app/main.py                               |  12 +
+ api/app/models.py                             |   6 +
+ api/app/models_magie.py                       | 617 ++++++++++++++++++
+ api/app/resolution_magie.py                   | 155 +++++
+ api/app/routes_magie.py                       | 170 +++++
+ api/app/utils_magie.py                        | 186 ++++++
+ api/scripts/data_magie/c1_aspect_ecole.json   |  14 +
+ .../data_magie/c1_tableur_complet.json        | 134 ++++
+ .../data_magie/c2_tableur_complet.json        | 240 +++++++
+ api/scripts/data_magie/c2_type_aspect.json    |  19 +
+ .../data_magie/c3_tableur_complet.json        | 189 ++++++
+ api/scripts/data_magie/c3_type_ecole.json     |  19 +
+ api/scripts/data_magie/c4_c5_type.json        |  19 +
+ api/scripts/data_magie/c6_c7_aspect.json      |  14 +
+ api/scripts/data_magie/diffs_c2_final.json    |   1 +
+ api/scripts/data_magie/diffs_c3_final.json    |   1 +
+ .../generic_action_physique_ex.json           |   1 +
+ .../data_magie/generic_arret_cast.json        |   1 +
+ .../data_magie/generic_base_effet.json        |   1 +
+ .../generic_bonus_caracteristique.json        |   4 +
+ .../generic_controle_action_ex_combat.json    |   1 +
+ ...generic_controle_action_ex_horscombat.json |   1 +
+ ...neric_controle_action_runique_enchant.json |   1 +
+ api/scripts/data_magie/generic_de_effet.json  |   1 +
+ api/scripts/data_magie/generic_duree.json     |   1 +
+ .../generic_duree_conservation_alchimie.json  |   1 +
+ api/scripts/data_magie/generic_duree_hc.json  |   1 +
+ .../generic_entrave_carac_mentale.json        |   1 +
+ .../generic_entrave_carac_physique.json       |   1 +
+ .../generic_entrave_partie_corps.json         |   1 +
+ .../generic_entrave_resistance_physique.json  |   1 +
+ .../data_magie/generic_forme_zone.json        |   1 +
+ .../generic_frequence_application.json        |   1 +
+ api/scripts/data_magie/generic_long_sort.json |   1 +
+ api/scripts/data_magie/generic_nb.json        |   1 +
+ .../generic_nombre_application.json           |   1 +
+ .../data_magie/generic_paliers_effet_13.json  |   1 +
+ .../generic_piege_runique_combat.json         |   1 +
+ .../generic_piege_runique_horscombat.json     |   1 +
+ api/scripts/data_magie/generic_portee.json    |   1 +
+ api/scripts/data_magie/generic_portee_hc.json |   1 +
+ .../data_magie/generic_reinit_immediate.json  |   1 +
+ .../data_magie/generic_resistance_degats.json |   1 +
+ .../generic_resistance_magique_Rm.json        |   1 +
+ .../generic_solidification_permanente.json    |   1 +
+ api/scripts/data_magie/generic_tz.json        |   1 +
+ .../data_magie/niveau_aspect_type_prix.json   |   1 +
+ api/scripts/import_constantes_magie.py        | 276 ++++++++
+ api/test_integration.db                       | Bin 0 -> 225280 bytes
+ app                                           |   1 -
+ pages/elenior/magie/magie-index.html          | 538 +++++++++++++++
+ test.txt                                      |   0
+ 52 files changed, 2644 insertions(+), 1 deletion(-)
+ create mode 100644 api/app/models_magie.py
+ create mode 100644 api/app/resolution_magie.py
+ create mode 100644 api/app/routes_magie.py
+ create mode 100644 api/app/utils_magie.py
+ create mode 100644 api/scripts/data_magie/c1_aspect_ecole.json
+ create mode 100644 api/scripts/data_magie/c1_tableur_complet.json
+ create mode 100644 api/scripts/data_magie/c2_tableur_complet.json
+ create mode 100644 api/scripts/data_magie/c2_type_aspect.json
+ create mode 100644 api/scripts/data_magie/c3_tableur_complet.json
+ create mode 100644 api/scripts/data_magie/c3_type_ecole.json
+ create mode 100644 api/scripts/data_magie/c4_c5_type.json
+ create mode 100644 api/scripts/data_magie/c6_c7_aspect.json
+ create mode 100644 api/scripts/data_magie/diffs_c2_final.json
+ create mode 100644 api/scripts/data_magie/diffs_c3_final.json
+ create mode 100644 api/scripts/data_magie/generic_action_physique_ex.json
+ create mode 100644 api/scripts/data_magie/generic_arret_cast.json
+ create mode 100644 api/scripts/data_magie/generic_base_effet.json
+ create mode 100644 api/scripts/data_magie/generic_bonus_caracteristique.json
+ create mode 100644 api/scripts/data_magie/generic_controle_action_ex_combat.json
+ create mode 100644 api/scripts/data_magie/generic_controle_action_ex_horscombat.json
+ create mode 100644 api/scripts/data_magie/generic_controle_action_runique_enchant.json
+ create mode 100644 api/scripts/data_magie/generic_de_effet.json
+ create mode 100644 api/scripts/data_magie/generic_duree.json
+ create mode 100644 api/scripts/data_magie/generic_duree_conservation_alchimie.json
+ create mode 100644 api/scripts/data_magie/generic_duree_hc.json
+ create mode 100644 api/scripts/data_magie/generic_entrave_carac_mentale.json
+ create mode 100644 api/scripts/data_magie/generic_entrave_carac_physique.json
+ create mode 100644 api/scripts/data_magie/generic_entrave_partie_corps.json
+ create mode 100644 api/scripts/data_magie/generic_entrave_resistance_physique.json
+ create mode 100644 api/scripts/data_magie/generic_forme_zone.json
+ create mode 100644 api/scripts/data_magie/generic_frequence_application.json
+ create mode 100644 api/scripts/data_magie/generic_long_sort.json
+ create mode 100644 api/scripts/data_magie/generic_nb.json
+ create mode 100644 api/scripts/data_magie/generic_nombre_application.json
+ create mode 100644 api/scripts/data_magie/generic_paliers_effet_13.json
+ create mode 100644 api/scripts/data_magie/generic_piege_runique_combat.json
+ create mode 100644 api/scripts/data_magie/generic_piege_runique_horscombat.json
+ create mode 100644 api/scripts/data_magie/generic_portee.json
+ create mode 100644 api/scripts/data_magie/generic_portee_hc.json
+ create mode 100644 api/scripts/data_magie/generic_reinit_immediate.json
+ create mode 100644 api/scripts/data_magie/generic_resistance_degats.json
+ create mode 100644 api/scripts/data_magie/generic_resistance_magique_Rm.json
+ create mode 100644 api/scripts/data_magie/generic_solidification_permanente.json
+ create mode 100644 api/scripts/data_magie/generic_tz.json
+ create mode 100644 api/scripts/data_magie/niveau_aspect_type_prix.json
+ create mode 100644 api/scripts/import_constantes_magie.py
+ create mode 100644 api/test_integration.db
+ delete mode 100644 app
+ create mode 100644 pages/elenior/magie/magie-index.html
+ delete mode 100644 test.txt
+
+diff --git a/api/app/main.py b/api/app/main.py
+index 63c9c28..7e17f31 100644
+--- a/api/app/main.py
++++ b/api/app/main.py
+@@ -37,6 +37,14 @@ from .utils import (
+     generate_download_url,
+ )
+ 
++# Système de magie d'Elénior (ajouté le 10/08/2026) : routes regroupées dans
++# leur propre module (voir app/routes_magie.py), inclus ci-dessous via
++# app.include_router(). Importer ce module a aussi pour effet d'enregistrer
++# les tables magie_* et Sort dans SQLModel.metadata (via son propre import de
++# .models_magie), donc create_db_and_tables() les crée sans configuration
++# supplémentaire.
++from .routes_magie import router as magie_router
++
+ 
+ @asynccontextmanager
+ async def lifespan(app: FastAPI):
+@@ -60,6 +68,10 @@ app.add_middleware(
+     allow_headers=["*"],
+ )
+ 
++# Système de magie d'Elénior : voir app/routes_magie.py (préfixe /magie,
++# health check dédié sur /magie/health en plus de /health global).
++app.include_router(magie_router)
++
+ 
+ @app.get("/health")
+ def health_check():
+diff --git a/api/app/models.py b/api/app/models.py
+index a0ff01d..5e55b7f 100644
+--- a/api/app/models.py
++++ b/api/app/models.py
+@@ -289,6 +289,12 @@ class CharacterSpecialSkillCreate(CharacterSpecialSkillBase):
+     pass
+ 
+ 
++# NOTE (10/08/2026) : coexiste désormais avec la table Sort du système de
++# magie complet (app/models_magie.py) - Sort calcule Coût/Cast à partir des
++# tables de règles (aspects/écoles/type), alors que CharacterSpell reste un
++# résumé en texte libre sur la fiche de personnage. Décision Obe (option 1) :
++# les deux restent actives telles quelles pour l'instant, fusion éventuelle
++# à traiter plus tard dans sa propre conversation.
+ class CharacterSpellBase(SQLModel):
+     name: str
+     ecole: Optional[str] = None
+diff --git a/api/app/models_magie.py b/api/app/models_magie.py
+new file mode 100644
+index 0000000..d616294
+--- /dev/null
++++ b/api/app/models_magie.py
+@@ -0,0 +1,617 @@
++"""
++Modeles de l'outil de magie d'Elenior (AmbreLab).
++
++Ce module suit le pattern XxxBase / Xxx(table=True) / XxxCreate deja en place
++dans app/models.py. A FUSIONNER dans app/models.py une fois valide (propose
++comme fichier separe ici pour faciliter la relecture).
++
++Deux familles de tables :
++  1. Tables de REFERENCE (constantes de magie) : pas de campaign_id, ce sont
++     des donnees systeme issues du livre de regles, ecrites une seule fois
++     par le script d'import (scripts/import_constantes_magie.py, a venir)
++     et non modifiees en jeu. Option 1 retenue avec Obe le 09/08/2026 :
++     une ligne par valeur plutot qu'un blob JSON, pour rester requetable et
++     corrigible en SQL depuis l'interface Data de Railway.
++  2. Table de JEU (Sort) : campaign_id + character_id obligatoires, suit les
++     conventions de cloisonnement d'AmbreLab. Pas de filtrage par joueur pour
++     la v1 (decision Obe du 09/08/2026, alignee sur l'acces aux personnages) :
++     toute route de listing renvoie tous les sorts de la campagne.
++
++Sources : livre "Les Compagnons de l'Infortune 2026" (chapitre IV) et
++Tableur_Jeff_Le_Corbeau.xlsx, croises - voir recap-extraction-magie-elenior.md
++pour le detail de l'extraction et les points encore ouverts avec Elise
++(decalages C1/C2/C3, terme +En, usage de la Resistance magique).
++"""
++
++from typing import Optional
++from sqlmodel import SQLModel, Field
++from sqlalchemy import Column, JSON
++
++
++# ---------------------------------------------------------------------------
++# 1. CONSTANTES C1 A C7 - coeur des deux equations (Cout et Cast)
++# ---------------------------------------------------------------------------
++
++class MagieC1Base(SQLModel):
++    """C1 : constante Aspect x Ecole, partagee par tous les Types."""
++    aspect: str
++    ecole: str
++    valeur: float
++
++
++class MagieC1(MagieC1Base, table=True):
++    __tablename__ = "magie_c1_aspect_ecole"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieC1Create(MagieC1Base):
++    pass
++
++
++class MagieC2Base(SQLModel):
++    """C2 : constante Type x Aspect."""
++    type_magie: str
++    aspect: str
++    valeur: float
++
++
++class MagieC2(MagieC2Base, table=True):
++    __tablename__ = "magie_c2_type_aspect"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieC2Create(MagieC2Base):
++    pass
++
++
++class MagieC3Base(SQLModel):
++    """C3 : constante Type x Ecole."""
++    type_magie: str
++    ecole: str
++    valeur: float
++
++
++class MagieC3(MagieC3Base, table=True):
++    __tablename__ = "magie_c3_type_ecole"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieC3Create(MagieC3Base):
++    pass
++
++
++class MagieC4C5Base(SQLModel):
++    """C4 (Cout) et C5 (Cast), fixes par Type de magie."""
++    type_magie: str
++    c4_cout: float
++    c5_cast: float
++
++
++class MagieC4C5(MagieC4C5Base, table=True):
++    __tablename__ = "magie_c4_c5_type"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieC4C5Create(MagieC4C5Base):
++    pass
++
++
++class MagieC6C7Base(SQLModel):
++    """C6 (Cout) et C7 (Cast), fixes par Aspect de magie."""
++    aspect: str
++    c6_cout: float
++    c7_cast: float
++
++
++class MagieC6C7(MagieC6C7Base, table=True):
++    __tablename__ = "magie_c6_c7_aspect"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieC6C7Create(MagieC6C7Base):
++    pass
++
++
++# ---------------------------------------------------------------------------
++# 2. TABLES GENERIQUES - un groupe = une table, forme commune (palier, valeur)
++#
++# Ces tables partagent toutes la meme forme (une etiquette de palier + un
++# cout en PP), mais restent des tables separees et explicitement nommees :
++# elles decrivent des concepts distincts du systeme (duree, portee, nombre
++# de cibles...) et les regrouper aurait pu recreer le risque de confusion
++# rencontre pendant l'extraction (Resistance magique vs Resistance aux
++# degats, deux tables au nom proche mais au role totalement different).
++# ---------------------------------------------------------------------------
++
++class MagieGenericNbBase(SQLModel):
++    """Nombre de cibles touchées (Nb)."""
++    palier: str
++    valeur: Optional[float] = None  # None = "Immédiat" ou "/" (pas de coût)
++
++
++class MagieGenericNb(MagieGenericNbBase, table=True):
++    __tablename__ = "magie_generic_nb"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieGenericNbCreate(MagieGenericNbBase):
++    pass
++
++
++class MagieGenericTzBase(SQLModel):
++    """Taille de la zone (Tz)."""
++    palier: str
++    valeur: Optional[float] = None  # None = "Immédiat" ou "/" (pas de coût)
++
++
++class MagieGenericTz(MagieGenericTzBase, table=True):
++    __tablename__ = "magie_generic_tz"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieGenericTzCreate(MagieGenericTzBase):
++    pass
++
++
++class MagieGenericFormeZoneBase(SQLModel):
++    """Forme de la zone (Z) - 6 formes géométriques."""
++    palier: str
++    valeur: Optional[float] = None  # None = "Immédiat" ou "/" (pas de coût)
++
++
++class MagieGenericFormeZone(MagieGenericFormeZoneBase, table=True):
++    __tablename__ = "magie_generic_forme_zone"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieGenericFormeZoneCreate(MagieGenericFormeZoneBase):
++    pass
++
++
++class MagieGenericDureeCombatBase(SQLModel):
++    """Durée du sort (D) - combat, en temps/tours."""
++    palier: str
++    valeur: Optional[float] = None  # None = "Immédiat" ou "/" (pas de coût)
++
++
++class MagieGenericDureeCombat(MagieGenericDureeCombatBase, table=True):
++    __tablename__ = "magie_generic_duree_combat"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieGenericDureeCombatCreate(MagieGenericDureeCombatBase):
++    pass
++
++
++class MagieGenericDureeHorsCombatBase(SQLModel):
++    """Durée du sort (D) - hors-combat, en secondes/minutes/heures."""
++    palier: str
++    valeur: Optional[float] = None  # None = "Immédiat" ou "/" (pas de coût)
++
++
++class MagieGenericDureeHorsCombat(MagieGenericDureeHorsCombatBase, table=True):
++    __tablename__ = "magie_generic_duree_hors_combat"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieGenericDureeHorsCombatCreate(MagieGenericDureeHorsCombatBase):
++    pass
++
++
++class MagieGenericPorteeCombatBase(SQLModel):
++    """Portée (Po) - combat."""
++    palier: str
++    valeur: Optional[float] = None  # None = "Immédiat" ou "/" (pas de coût)
++
++
++class MagieGenericPorteeCombat(MagieGenericPorteeCombatBase, table=True):
++    __tablename__ = "magie_generic_portee_combat"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieGenericPorteeCombatCreate(MagieGenericPorteeCombatBase):
++    pass
++
++
++class MagieGenericPorteeHorsCombatBase(SQLModel):
++    """Portée (Po) - hors-combat."""
++    palier: str
++    valeur: Optional[float] = None  # None = "Immédiat" ou "/" (pas de coût)
++
++
++class MagieGenericPorteeHorsCombat(MagieGenericPorteeHorsCombatBase, table=True):
++    __tablename__ = "magie_generic_portee_hors_combat"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieGenericPorteeHorsCombatCreate(MagieGenericPorteeHorsCombatBase):
++    pass
++
++
++class MagieGenericControleActionCombatBase(SQLModel):
++    """Contrôle d'action (Ex) - combat."""
++    palier: str
++    valeur: Optional[float] = None  # None = "Immédiat" ou "/" (pas de coût)
++
++
++class MagieGenericControleActionCombat(MagieGenericControleActionCombatBase, table=True):
++    __tablename__ = "magie_generic_controle_action_combat"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieGenericControleActionCombatCreate(MagieGenericControleActionCombatBase):
++    pass
++
++
++class MagieGenericControleActionHorsCombatBase(SQLModel):
++    """Contrôle d'action (Ex) - hors-combat."""
++    palier: str
++    valeur: Optional[float] = None  # None = "Immédiat" ou "/" (pas de coût)
++
++
++class MagieGenericControleActionHorsCombat(MagieGenericControleActionHorsCombatBase, table=True):
++    __tablename__ = "magie_generic_controle_action_hors_combat"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieGenericControleActionHorsCombatCreate(MagieGenericControleActionHorsCombatBase):
++    pass
++
++
++class MagieGenericControleActionRuniqueEnchantBase(SQLModel):
++    """Contrôle d'action - spécial Runique et Enchantement."""
++    palier: str
++    valeur: Optional[float] = None  # None = "Immédiat" ou "/" (pas de coût)
++
++
++class MagieGenericControleActionRuniqueEnchant(MagieGenericControleActionRuniqueEnchantBase, table=True):
++    __tablename__ = "magie_generic_controle_action_runique_enchant"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieGenericControleActionRuniqueEnchantCreate(MagieGenericControleActionRuniqueEnchantBase):
++    pass
++
++
++class MagieGenericPiegeRuniqueCombatBase(SQLModel):
++    """Piège runique - combat."""
++    palier: str
++    valeur: Optional[float] = None  # None = "Immédiat" ou "/" (pas de coût)
++
++
++class MagieGenericPiegeRuniqueCombat(MagieGenericPiegeRuniqueCombatBase, table=True):
++    __tablename__ = "magie_generic_piege_runique_combat"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieGenericPiegeRuniqueCombatCreate(MagieGenericPiegeRuniqueCombatBase):
++    pass
++
++
++class MagieGenericPiegeRuniqueHorsCombatBase(SQLModel):
++    """Piège runique - hors-combat."""
++    palier: str
++    valeur: Optional[float] = None  # None = "Immédiat" ou "/" (pas de coût)
++
++
++class MagieGenericPiegeRuniqueHorsCombat(MagieGenericPiegeRuniqueHorsCombatBase, table=True):
++    __tablename__ = "magie_generic_piege_runique_hors_combat"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieGenericPiegeRuniqueHorsCombatCreate(MagieGenericPiegeRuniqueHorsCombatBase):
++    pass
++
++
++class MagieGenericDeEffetBase(SQLModel):
++    """Dé d'effet (D2 à D20)."""
++    palier: str
++    valeur: Optional[float] = None  # None = "Immédiat" ou "/" (pas de coût)
++
++
++class MagieGenericDeEffet(MagieGenericDeEffetBase, table=True):
++    __tablename__ = "magie_generic_de_effet"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieGenericDeEffetCreate(MagieGenericDeEffetBase):
++    pass
++
++
++class MagieGenericBaseEffetBase(SQLModel):
++    """Base d'effet (Base 2 à Base 6)."""
++    palier: str
++    valeur: Optional[float] = None  # None = "Immédiat" ou "/" (pas de coût)
++
++
++class MagieGenericBaseEffet(MagieGenericBaseEffetBase, table=True):
++    __tablename__ = "magie_generic_base_effet"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieGenericBaseEffetCreate(MagieGenericBaseEffetBase):
++    pass
++
++
++class MagieGenericPaliersEffet13Base(SQLModel):
++    """Paliers d'"effets autres" à 13 niveaux (Nul à Divin) - réutilisée aussi pour Réinitialisation postérieure et Solidification temporaire."""
++    palier: str
++    valeur: Optional[float] = None  # None = "Immédiat" ou "/" (pas de coût)
++
++
++class MagieGenericPaliersEffet13(MagieGenericPaliersEffet13Base, table=True):
++    __tablename__ = "magie_generic_paliers_effet_13"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieGenericPaliersEffet13Create(MagieGenericPaliersEffet13Base):
++    pass
++
++
++class MagieGenericResistanceDegatsBase(SQLModel):
++    """Résistance aux dégâts (E) - effet sommé dans Pi/Pd."""
++    palier: str
++    valeur: Optional[float] = None  # None = "Immédiat" ou "/" (pas de coût)
++
++
++class MagieGenericResistanceDegats(MagieGenericResistanceDegatsBase, table=True):
++    __tablename__ = "magie_generic_resistance_degats"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieGenericResistanceDegatsCreate(MagieGenericResistanceDegatsBase):
++    pass
++
++
++class MagieGenericResistanceMagiqueBase(SQLModel):
++    """Résistance magique (Rm) - absente des variables de l'équation, usage exact à confirmer avec Elise."""
++    palier: str
++    valeur: Optional[float] = None  # None = "Immédiat" ou "/" (pas de coût)
++
++
++class MagieGenericResistanceMagique(MagieGenericResistanceMagiqueBase, table=True):
++    __tablename__ = "magie_generic_resistance_magique"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieGenericResistanceMagiqueCreate(MagieGenericResistanceMagiqueBase):
++    pass
++
++
++class MagieGenericReinitImmediateBase(SQLModel):
++    """Réinitialisation immédiate de la matière (Ex)."""
++    palier: str
++    valeur: Optional[float] = None  # None = "Immédiat" ou "/" (pas de coût)
++
++
++class MagieGenericReinitImmediate(MagieGenericReinitImmediateBase, table=True):
++    __tablename__ = "magie_generic_reinit_immediate"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieGenericReinitImmediateCreate(MagieGenericReinitImmediateBase):
++    pass
++
++
++class MagieGenericSolidificationPermanenteBase(SQLModel):
++    """Solidification permanente de la matière (E)."""
++    palier: str
++    valeur: Optional[float] = None  # None = "Immédiat" ou "/" (pas de coût)
++
++
++class MagieGenericSolidificationPermanente(MagieGenericSolidificationPermanenteBase, table=True):
++    __tablename__ = "magie_generic_solidification_permanente"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieGenericSolidificationPermanenteCreate(MagieGenericSolidificationPermanenteBase):
++    pass
++
++
++class MagieGenericDureeConservationAlchimieBase(SQLModel):
++    """Durée de conservation d'une potion - péremption (Alchimie)."""
++    palier: str
++    valeur: Optional[float] = None  # None = "Immédiat" ou "/" (pas de coût)
++
++
++class MagieGenericDureeConservationAlchimie(MagieGenericDureeConservationAlchimieBase, table=True):
++    __tablename__ = "magie_generic_duree_conservation_alchimie"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieGenericDureeConservationAlchimieCreate(MagieGenericDureeConservationAlchimieBase):
++    pass
++
++
++class MagieGenericLongSortBase(SQLModel):
++    """Long-sort (E) - remplace le Cast pour l'Alchimie."""
++    palier: str
++    valeur: Optional[float] = None  # None = "Immédiat" ou "/" (pas de coût)
++
++
++class MagieGenericLongSort(MagieGenericLongSortBase, table=True):
++    __tablename__ = "magie_generic_long_sort"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieGenericLongSortCreate(MagieGenericLongSortBase):
++    pass
++
++
++class MagieGenericActionPhysiqueExBase(SQLModel):
++    """Action physique combinée à un sort (Ex), par arme/caractéristique."""
++    palier: str
++    valeur: Optional[float] = None  # None = "Immédiat" ou "/" (pas de coût)
++
++
++class MagieGenericActionPhysiqueEx(MagieGenericActionPhysiqueExBase, table=True):
++    __tablename__ = "magie_generic_action_physique_ex"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieGenericActionPhysiqueExCreate(MagieGenericActionPhysiqueExBase):
++    pass
++
++
++class MagieGenericArretCastBase(SQLModel):
++    """Arrêt du cast d'un sort (E)."""
++    palier: str
++    valeur: Optional[float] = None  # None = "Immédiat" ou "/" (pas de coût)
++
++
++class MagieGenericArretCast(MagieGenericArretCastBase, table=True):
++    __tablename__ = "magie_generic_arret_cast"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieGenericArretCastCreate(MagieGenericArretCastBase):
++    pass
++
++
++class MagieGenericNiveauAspectTypePrixBase(SQLModel):
++    """Coût en points d'attribut par niveau d'Aspect/Type de magie (Nv 1 à 10)."""
++    palier: str
++    valeur: Optional[float] = None  # None = "Immédiat" ou "/" (pas de coût)
++
++
++class MagieGenericNiveauAspectTypePrix(MagieGenericNiveauAspectTypePrixBase, table=True):
++    __tablename__ = "magie_generic_niveau_aspect_type_prix"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieGenericNiveauAspectTypePrixCreate(MagieGenericNiveauAspectTypePrixBase):
++    pass
++
++
++# ---------------------------------------------------------------------------
++# 2bis. Tables d'entrave - forme un peu differente (deux composantes en jeu),
++# gardees explicites plutot que forcees dans le pattern generique ci-dessus.
++# ---------------------------------------------------------------------------
++
++class MagieEntraveResistancePhysiqueBase(SQLModel):
++    """Entrave Physique - Resistance (EnPR), en points de vie de l'entrave
++    (une coque de terre ou une liane a des PV et peut etre brisee)."""
++    points_vie: int
++    valeur: float
++
++
++class MagieEntraveResistancePhysique(MagieEntraveResistancePhysiqueBase, table=True):
++    __tablename__ = "magie_entrave_resistance_physique"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieEntraveResistancePhysiqueCreate(MagieEntraveResistancePhysiqueBase):
++    pass
++
++
++class MagieEntraveCaracBase(SQLModel):
++    """Commune a EnPC (Entrave Physique - Carac.) et EnMC (Entrave Mentale -
++    Carac.) : un pourcentage de malus/bonus au jet + son cout. Le champ
++    type_entrave distingue les deux plutot que dupliquer la table."""
++    type_entrave: str  # "physique" | "mentale"
++    pourcentage: str    # ex. "+20%", "-90%", "Impossible"
++    valeur: float
++
++
++class MagieEntraveCarac(MagieEntraveCaracBase, table=True):
++    __tablename__ = "magie_entrave_carac"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieEntraveCaracCreate(MagieEntraveCaracBase):
++    pass
++
++
++class MagieEntravePartieCorpsBase(SQLModel):
++    """Partie du corps entravee (Pce)."""
++    partie: str
++    valeur: float
++
++
++class MagieEntravePartieCorps(MagieEntravePartieCorpsBase, table=True):
++    __tablename__ = "magie_entrave_partie_corps"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieEntravePartieCorpsCreate(MagieEntravePartieCorpsBase):
++    pass
++
++
++class MagieFrequenceApplicationBase(SQLModel):
++    """Frequence d'application (F) et Nombre d'application (Napp) : meme
++    forme, regroupees dans une table via type_constante car toujours
++    utilisees ensemble dans le calcul de Pd."""
++    type_constante: str  # "frequence" | "nombre_application"
++    palier: str
++    valeur: float
++
++
++class MagieFrequenceApplication(MagieFrequenceApplicationBase, table=True):
++    __tablename__ = "magie_frequence_application"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieFrequenceApplicationCreate(MagieFrequenceApplicationBase):
++    pass
++
++
++class MagieBonusCaracteristiqueBase(SQLModel):
++    """Bonus de caracteristique (E) : categorie mineure/maitrise vs majeure,
++    avec variantes critiques."""
++    categorie: str  # "mineure_maitrise" | "majeure"
++    palier: str      # ex. "+/-10%", "+/-5% Crit"
++    valeur: float
++
++
++class MagieBonusCaracteristique(MagieBonusCaracteristiqueBase, table=True):
++    __tablename__ = "magie_bonus_caracteristique"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class MagieBonusCaracteristiqueCreate(MagieBonusCaracteristiqueBase):
++    pass
++
++
++# ---------------------------------------------------------------------------
++# 3. TABLE DE JEU - sorts crees par les joueurs/MJ
++# ---------------------------------------------------------------------------
++
++class SortBase(SQLModel):
++    campaign_id: int = Field(foreign_key="campaign.id")
++    character_id: int = Field(foreign_key="character.id")
++
++    nom: str
++    type_magie: str
++
++    # Jusqu'a 3 aspects et 3 ecoles (regle des sorts complexes, voir recap §3)
++    aspects: list[str] = Field(sa_column=Column(JSON))
++    ecoles: list[str] = Field(sa_column=Column(JSON))
++
++    # Composants bruts de calcul saisis par le joueur (des, base, effets,
++    # duree, portee, nombre de cibles, zone, entrave, etc.) - stockes en JSON
++    # plutot qu'en colonnes separees : ces composants varient selon le sort
++    # (un sort n'utilise jamais tous les effets possibles a la fois), et la
++    # liste des effets possibles est deja entierement decrite par les tables
++    # de reference ci-dessus. Reproduire chaque colonne du tableur en colonne
++    # SQL forcerait une table a des centaines de colonnes presque toutes
++    # vides. Le detail attendu de ce JSON sera fixe au moment de coder les
++    # fonctions de calcul dans app/utils.py.
++    composants: dict = Field(sa_column=Column(JSON))
++
++    # Resultats calcules et mis en cache (recalcules a chaque modification du
++    # sort plutot qu'a la volee a chaque lecture, pour eviter de refaire le
++    # calcul complet a chaque affichage de la bibliotheque)
++    cout_pp: float
++    cast_ou_long_sort: float
++    est_long_sort: bool = False  # true pour l'Alchimie (remplace le cast)
++
++    notes: Optional[str] = None
++
++
++class Sort(SortBase, table=True):
++    __tablename__ = "sort"
++    id: Optional[int] = Field(default=None, primary_key=True)
++
++
++class SortCreate(SortBase):
++    pass
+diff --git a/api/app/resolution_magie.py b/api/app/resolution_magie.py
+new file mode 100644
+index 0000000..2a8fafa
+--- /dev/null
++++ b/api/app/resolution_magie.py
+@@ -0,0 +1,155 @@
++"""
++Résolution des constantes de magie (C1-C7) depuis les tables de référence
++Postgres, pour un sort donné (Type + Aspects + Écoles).
++
++Séparé de app/utils_magie.py : ce module fait des requêtes BDD, alors que
++utils_magie.py reste volontairement pur (aucune dépendance BDD, testable en
++isolation). Convention de sobriété du projet : pas de duplication entre
++calcul pur et accès aux données.
++
++⚠️ CONVENTIONS NON CONFIRMÉES PAR LE LIVRE - à valider avec Elise avant mise
++en prod si des sorts multi-aspects ET multi-écoles simultanément deviennent
++courants :
++  - Le livre (p.145) documente la règle du "maximum" pour C1 sur plusieurs
++    Aspects, et séparément pour C1 sur plusieurs Écoles - mais ne dit rien
++    du cas combiné (plusieurs Aspects ET plusieurs Écoles à la fois). Ici,
++    on prend le maximum sur TOUTES les paires (Aspect,École) possibles du
++    sort, ce qui redonne exactement la règle du livre quand une seule des
++    deux dimensions varie, mais reste une extrapolation dans le cas combiné.
++  - C3 sur plusieurs Écoles : le livre ne documente explicitement que le cas
++    C1. La règle du maximum appliquée ici à C3 est une convention déduite du
++    comportement observé dans le tableur (voir incoherences-livre-vs-tableur-
++    EXHAUSTIF.md §"C2 et C3 cohérents avec la règle du max").
++  - C6/C7 sur plusieurs Aspects : même situation, règle du maximum appliquée
++    par convention, non explicitement confirmée par le livre (point resté
++    ouvert dans recap-extraction-magie-elenior.md §6).
++"""
++
++from dataclasses import dataclass
++
++import unicodedata
++
++from sqlmodel import Session, select
++
++from .models_magie import MagieC1, MagieC2, MagieC3, MagieC4C5, MagieC6C7
++
++
++def _normaliser(texte: str) -> str:
++    """Retire les accents et met en minuscule, pour comparer des noms
++    d'Aspect/École/Type sans dépendre de leur orthographe exacte.
++
++    BUG RÉEL trouvé en testant l'API de bout en bout (09/08/2026) : les
++    tables de référence ont été importées avec des noms d'aspects SANS
++    accent (ex. "Electricite", "Lumiere") suite à un choix de transcription
++    initial, alors qu'un client enverra naturellement "Électricité",
++    "Lumière" avec leurs accents. Plutôt que de ré-importer toutes les
++    tables avec la bonne orthographe (risque de casser autre chose sans
++    bénéfice réel), la comparaison est normalisée ici, à la frontière de
++    la résolution - c'est aussi ce qui rend l'API tolérante si un futur
++    client envoie une variante d'accentuation légèrement différente."""
++    sans_accents = unicodedata.normalize("NFKD", texte).encode("ascii", "ignore").decode("ascii")
++    return sans_accents.strip().lower()
++
++
++class ConstanteIntrouvableError(Exception):
++    """Levée si une combinaison Type/Aspect/École n'existe pas dans les
++    tables de référence - typiquement un nom mal orthographié envoyé par
++    le client plutôt qu'une vraie absence de donnée (les tables sont
++    complètes pour tous les Types/Aspects/Écoles officiels)."""
++    pass
++
++
++@dataclass
++class ConstantesResolues:
++    c1: float
++    c2: float
++    c3: float
++    c4: float
++    c5: float
++    c6: float
++    c7: float
++
++
++# Tables de référence de petite taille (108 à 204 lignes max) : on charge
++# tout en mémoire et on compare via _normaliser plutôt que de multiplier les
++# allers-retours SQL avec des LOWER()/UNACCENT() dépendants du moteur BDD.
++# Revoir cette approche si ces tables grossissent significativement.
++
++def _get_c1(session: Session, aspect: str, ecole: str) -> float:
++    a_norm, e_norm = _normaliser(aspect), _normaliser(ecole)
++    for row in session.exec(select(MagieC1)).all():
++        if _normaliser(row.aspect) == a_norm and _normaliser(row.ecole) == e_norm:
++            return row.valeur
++    raise ConstanteIntrouvableError(f"C1 introuvable pour Aspect={aspect!r} / École={ecole!r}")
++
++
++def _get_c2(session: Session, type_magie: str, aspect: str) -> float:
++    t_norm, a_norm = _normaliser(type_magie), _normaliser(aspect)
++    for row in session.exec(select(MagieC2)).all():
++        if _normaliser(row.type_magie) == t_norm and _normaliser(row.aspect) == a_norm:
++            return row.valeur
++    raise ConstanteIntrouvableError(f"C2 introuvable pour Type={type_magie!r} / Aspect={aspect!r}")
++
++
++def _get_c3(session: Session, type_magie: str, ecole: str) -> float:
++    t_norm, e_norm = _normaliser(type_magie), _normaliser(ecole)
++    for row in session.exec(select(MagieC3)).all():
++        if _normaliser(row.type_magie) == t_norm and _normaliser(row.ecole) == e_norm:
++            return row.valeur
++    raise ConstanteIntrouvableError(f"C3 introuvable pour Type={type_magie!r} / École={ecole!r}")
++
++
++def _get_c4_c5(session: Session, type_magie: str) -> tuple[float, float]:
++    t_norm = _normaliser(type_magie)
++    for row in session.exec(select(MagieC4C5)).all():
++        if _normaliser(row.type_magie) == t_norm:
++            return row.c4_cout, row.c5_cast
++    raise ConstanteIntrouvableError(f"C4/C5 introuvables pour Type={type_magie!r}")
++
++
++def _get_c6_c7(session: Session, aspect: str) -> tuple[float, float]:
++    a_norm = _normaliser(aspect)
++    for row in session.exec(select(MagieC6C7)).all():
++        if _normaliser(row.aspect) == a_norm:
++            return row.c6_cout, row.c7_cast
++    raise ConstanteIntrouvableError(f"C6/C7 introuvables pour Aspect={aspect!r}")
++
++
++def resoudre_constantes(
++    session: Session,
++    type_magie: str,
++    aspects: list[str],
++    ecoles: list[str],
++) -> ConstantesResolues:
++    """Résout C1 à C7 pour un sort, en appliquant la règle du maximum sur
++    toutes les combinaisons possibles quand le sort engage plusieurs
++    Aspects et/ou plusieurs Écoles (voir avertissement en tête de fichier).
++    """
++    if not aspects:
++        raise ValueError("Un sort doit engager au moins un Aspect")
++    if not ecoles:
++        raise ValueError("Un sort doit engager au moins une École")
++    if len(aspects) > 3 or len(ecoles) > 3:
++        raise ValueError("Un sort ne peut engager plus de 3 Aspects ou 3 Écoles (règle du livre)")
++
++    # C1 : maximum sur toutes les paires (Aspect, École) du sort
++    c1_candidats = [_get_c1(session, a, e) for a in aspects for e in ecoles]
++    c1 = max(c1_candidats)
++
++    # C2 : maximum sur les Aspects (le Type est fixe pour tout le sort)
++    c2_candidats = [_get_c2(session, type_magie, a) for a in aspects]
++    c2 = max(c2_candidats)
++
++    # C3 : maximum sur les Écoles
++    c3_candidats = [_get_c3(session, type_magie, e) for e in ecoles]
++    c3 = max(c3_candidats)
++
++    # C4/C5 : dépendent uniquement du Type, pas de combinaison à faire
++    c4, c5 = _get_c4_c5(session, type_magie)
++
++    # C6/C7 : maximum sur les Aspects
++    c6_c7_candidats = [_get_c6_c7(session, a) for a in aspects]
++    c6 = max(v[0] for v in c6_c7_candidats)
++    c7 = max(v[1] for v in c6_c7_candidats)
++
++    return ConstantesResolues(c1=c1, c2=c2, c3=c3, c4=c4, c5=c5, c6=c6, c7=c7)
+diff --git a/api/app/routes_magie.py b/api/app/routes_magie.py
+new file mode 100644
+index 0000000..b3a69e2
+--- /dev/null
++++ b/api/app/routes_magie.py
+@@ -0,0 +1,170 @@
++"""
++Routes API de l'outil de magie d'Elenior.
++
++A inclure dans app/main.py via :
++    from app.routes_magie import router as magie_router
++    app.include_router(magie_router)
++
++Deux familles de routes :
++  - POST /magie/calculer : calcul à la volée (Coût/Cast), sans écriture en
++    base. Utile pour l'interface de creation de sort (aperçu en direct
++    avant sauvegarde).
++  - /magie/sorts/* : CRUD de la bibliotheque de sorts, persistee en base,
++    filtree par campaign_id. Pas de filtrage par personnage/joueur pour la
++    v1 (decision Obe du 09/08/2026, alignee sur l'acces aux personnages) :
++    tout le monde dans une campagne voit tous les sorts de cette campagne.
++
++Source de verite pour les equations : LE LIVRE (voir app/utils_magie.py
++pour le detail de cette decision du 09/08/2026).
++"""
++
++from typing import Optional
++
++from fastapi import APIRouter, Depends, HTTPException
++from sqlmodel import Session, select
++
++from .database import get_session
++from .models_magie import Sort, SortCreate
++from .utils_magie import ComposantsSort, calculer_cout_sort, calculer_cast_sort
++from .resolution_magie import resoudre_constantes, ConstanteIntrouvableError
++from sqlmodel import SQLModel
++
++
++router = APIRouter(prefix="/magie", tags=["magie"])
++
++
++# ---------------------------------------------------------------------------
++# Schéma de requête pour le calcul à la volée - pas une table, juste un
++# schéma de validation d'entrée/sortie (SQLModel sans table=True)
++# ---------------------------------------------------------------------------
++
++class SortCalculRequest(SQLModel):
++    type_magie: str
++    aspects: list[str]          # 1 à 3 aspects
++    ecoles: list[str]           # 1 à 3 écoles
++
++    # Composants bruts du sort (voir ComposantsSort dans utils_magie.py)
++    pi: float = 0.0
++    pd: float = 0.0
++    en: float = 0.0
++    ex: float = 0.0
++    nb: float = 1.0
++    tz: float = 0.0
++    z: float = 1.0
++    po: float = 0.0
++
++    # Caractéristique et niveaux du personnage - fournis par l'appelant
++    # (dépendent du personnage, pas des tables de référence de la magie)
++    cm: float                     # caractéristique magique déjà divisée par 10
++    niveau_aspects: list[float]   # un Niveau d'Aspect par aspect engagé
++    niveau_type: float
++
++    # true pour l'Alchimie ou tout Type utilisant un Long-sort à la place
++    # du Cast classique - dans ce cas cast_ou_long_sort n'est PAS calculé
++    # ici : il doit être choisi directement dans la table
++    # magie_generic_long_sort par l'appelant (palier au choix du joueur/MJ)
++    est_long_sort: bool = False
++
++
++class SortCalculResponse(SQLModel):
++    cout_pp: float
++    cast: Optional[float]  # null si est_long_sort=true (voir note ci-dessus)
++    constantes_utilisees: dict  # transparence : quelles valeurs C1-C7 ont servi
++
++
++@router.get("/health")
++def health_magie():
++    """Health check dédié à ce module, conforme à la convention du projet
++    (chaque route API exposée avec un health check)."""
++    return {"status": "ok", "module": "magie"}
++
++
++@router.post("/calculer", response_model=SortCalculResponse)
++def calculer_sort(requete: SortCalculRequest, session: Session = Depends(get_session)):
++    """Calcule le Coût (et le Cast, sauf Long-sort) d'un sort à la volée,
++    sans le sauvegarder. Utilisé pour l'aperçu en direct côté interface."""
++    try:
++        constantes = resoudre_constantes(session, requete.type_magie, requete.aspects, requete.ecoles)
++    except ConstanteIntrouvableError as e:
++        raise HTTPException(status_code=422, detail=str(e))
++
++    if not requete.niveau_aspects:
++        raise HTTPException(status_code=422, detail="niveau_aspects ne peut pas être vide")
++
++    niveau_aspect_moyen = sum(requete.niveau_aspects) / len(requete.niveau_aspects)
++    nv = (niveau_aspect_moyen + requete.niveau_type) / 2
++
++    composants = ComposantsSort(
++        pi=requete.pi, pd=requete.pd, en=requete.en, ex=requete.ex,
++        nb=requete.nb, tz=requete.tz, z=requete.z, po=requete.po,
++        cm=requete.cm, nv=nv,
++    )
++
++    # Le livre indique un minimum de 1 PP pour le Coût - appliqué ici, à la
++    # frontière de l'API (calculer_cout_sort reste pur, voir utils_magie.py)
++    cout = max(1.0, calculer_cout_sort(composants, constantes.c1, constantes.c2, constantes.c3, constantes.c4, constantes.c6))
++
++    cast = None
++    if not requete.est_long_sort:
++        cast = calculer_cast_sort(composants, constantes.c1, constantes.c2, constantes.c3, constantes.c5, constantes.c7)
++
++    return SortCalculResponse(
++        cout_pp=cout,
++        cast=cast,
++        constantes_utilisees=vars(constantes),
++    )
++
++
++# ---------------------------------------------------------------------------
++# Bibliothèque de sorts - CRUD filtré par campaign_id
++# ---------------------------------------------------------------------------
++
++@router.get("/sorts", response_model=list[Sort])
++def lister_sorts(campaign_id: int, session: Session = Depends(get_session)):
++    """Liste tous les sorts d'une campagne, tous personnages confondus
++    (pas de filtrage par joueur pour la v1, voir en-tête de fichier)."""
++    return session.exec(select(Sort).where(Sort.campaign_id == campaign_id)).all()
++
++
++@router.get("/sorts/{sort_id}", response_model=Sort)
++def obtenir_sort(sort_id: int, session: Session = Depends(get_session)):
++    sort = session.get(Sort, sort_id)
++    if sort is None:
++        raise HTTPException(status_code=404, detail="Sort introuvable")
++    return sort
++
++
++@router.post("/sorts", response_model=Sort)
++def creer_sort(sort_create: SortCreate, session: Session = Depends(get_session)):
++    """Crée un sort. Les champs cout_pp/cast_ou_long_sort doivent déjà être
++    calculés côté client via /magie/calculer avant l'envoi - cette route ne
++    recalcule pas automatiquement (garder une frontière claire entre calcul
++    et persistance, cohérent avec le choix de cache décidé le 09/08/2026)."""
++    sort = Sort.model_validate(sort_create)
++    session.add(sort)
++    session.commit()
++    session.refresh(sort)  # évite le bug d'expiration SQLAlchemy sur double-commit
++    return sort
++
++
++@router.put("/sorts/{sort_id}", response_model=Sort)
++def modifier_sort(sort_id: int, sort_create: SortCreate, session: Session = Depends(get_session)):
++    sort = session.get(Sort, sort_id)
++    if sort is None:
++        raise HTTPException(status_code=404, detail="Sort introuvable")
++    for champ, valeur in sort_create.model_dump().items():
++        setattr(sort, champ, valeur)
++    session.add(sort)
++    session.commit()
++    session.refresh(sort)
++    return sort
++
++
++@router.delete("/sorts/{sort_id}")
++def supprimer_sort(sort_id: int, session: Session = Depends(get_session)):
++    sort = session.get(Sort, sort_id)
++    if sort is None:
++        raise HTTPException(status_code=404, detail="Sort introuvable")
++    session.delete(sort)
++    session.commit()
++    return {"ok": True}
+diff --git a/api/app/utils_magie.py b/api/app/utils_magie.py
+new file mode 100644
+index 0000000..7e134a0
+--- /dev/null
++++ b/api/app/utils_magie.py
+@@ -0,0 +1,186 @@
++"""
++Calcul du Coût (PP) et du Cast (temps de lancement) d'un sort d'Elénior.
++
++DÉCISION DU 09/08/2026 : implémentation basée sur les équations du LIVRE de règles
++("Les Compagnons de l'Infortune 2026", chapitre IV, page 126), PAS sur celles du
++tableur d'Elise. Décision prise par Obe suite au retour d'Elise elle-même (Discord,
++09/08/2026) : les décalages +0,45/+1/+0,9 du tableur sur C1/C2/C3 sont bien réels et
++volontaires, mais Elise n'avait pas mesuré leur impact réel sur le résultat final
++(facteur ~7x observé lors des tests de comparaison) et envisage de revenir à une
++version plus proche du livre. Le code suit donc le livre tel quel, sans décalage ni
++plancher artificiel.
++
++Si Elise confirme plus tard vouloir les décalages du tableur, ils se rajoutent
++simplement en +0.45/+1/+0.9 sur c1/c2/c3 avant l'appel à ces fonctions - voir
++recap-extraction-magie-elenior.md et incoherences-livre-vs-tableur-EXHAUSTIF.md pour
++le détail de ce qui a été comparé.
++
++Sources des valeurs C1 à C7 : tables extraites et validées visuellement depuis le
++livre (voir constantes-magie-json.zip). Aucune valeur ici n'est codée en dur : ces
++fonctions prennent les constantes déjà résolues en paramètre, à charge de l'appelant
++(route API) d'aller les chercher dans les tables Postgres de référence
++(magie_c1_aspect_ecole, magie_c2_type_aspect, etc. - voir models_magie.py).
++"""
++
++from dataclasses import dataclass
++from typing import Optional
++
++
++# ---------------------------------------------------------------------------
++# Combinaison des constantes pour les sorts à Aspects ou Écoles multiples
++# (règles du livre, page 145 - "Sorts aux multiples écoles" / "Sorts aux
++# multiples aspects")
++# ---------------------------------------------------------------------------
++
++def resoudre_c1_multi_aspect(c1_par_aspect: list[float]) -> float:
++    """C1 pour un sort à plusieurs Aspects : le livre dit de prendre la valeur
++    la plus haute parmi les Aspects engagés (pas une moyenne).
++    c1_par_aspect : la valeur C1 (Aspect x École du sort) pour chaque Aspect
++    engagé par le sort (1 à 3 valeurs)."""
++    if not c1_par_aspect:
++        raise ValueError("Un sort doit engager au moins un Aspect")
++    return max(c1_par_aspect)
++
++
++def resoudre_c1_multi_ecole(c1_par_ecole: list[float]) -> float:
++    """C1 pour un sort à plusieurs Écoles : même règle que pour les Aspects,
++    la valeur la plus haute parmi les Écoles engagées (livre p.145)."""
++    if not c1_par_ecole:
++        raise ValueError("Un sort doit engager au moins une École")
++    return max(c1_par_ecole)
++
++
++def resoudre_c2_multi_aspect(c2_par_aspect: list[float]) -> float:
++    """C2 pour un sort à plusieurs Aspects : même règle, valeur la plus haute
++    (livre p.145 : "nous prenons la valeur la plus haute des constantes
++    C1 et C2")."""
++    if not c2_par_aspect:
++        raise ValueError("Un sort doit engager au moins un Aspect")
++    return max(c2_par_aspect)
++
++
++def moyenne_niveau_aspect(niveaux_aspect: list[float]) -> float:
++    """Moyenne des Niveaux d'Aspect engagés par le sort, avant de la
++    moyenner à son tour avec le Niveau de Type pour obtenir Nv
++    (livre p.145 : "nous faisons en effet la moyenne du niveau d'aspect
++    entre ces différents aspects")."""
++    if not niveaux_aspect:
++        raise ValueError("Un sort doit engager au moins un Aspect")
++    return sum(niveaux_aspect) / len(niveaux_aspect)
++
++
++def calculer_nv(niveau_aspect_moyen: float, niveau_type: float) -> float:
++    """Nv = moyenne du Niveau d'Aspect (déjà moyenné si plusieurs Aspects,
++    voir moyenne_niveau_aspect) et du Niveau de Type engagés dans le sort."""
++    return (niveau_aspect_moyen + niveau_type) / 2
++
++
++# ---------------------------------------------------------------------------
++# Équations principales - Coût et Cast d'un sort
++# ---------------------------------------------------------------------------
++
++@dataclass
++class ComposantsSort:
++    """Regroupe toutes les variables brutes nécessaires au calcul d'un sort,
++    telles que définies par le livre p.126. Un sort n'utilise jamais toutes
++    les variables à la fois (ex: un sort sans entrave a en=0) - les valeurs
++    par défaut à 0 couvrent ce cas sans complexifier l'appel."""
++    pi: float = 0.0    # Puissance immédiate (somme des effets instantanés)
++    pd: float = 0.0    # Puissance dans la durée (somme des effets prolongés)
++    en: float = 0.0    # Entrave - voir note ci-dessous
++    ex: float = 0.0    # Multiplicateur d'effets exceptionnels (contrôle d'action)
++    nb: float = 1.0    # Nombre de cibles touchées
++    tz: float = 0.0    # Taille de la zone (0 si le sort ne cible pas une zone)
++    z: float = 1.0     # Forme de la zone (multiplicateur, 1 par défaut = Zone 1)
++    po: float = 0.0    # Portée (uniquement utilisée dans le Cast, pas le Coût)
++    cm: float = 0.0    # Caractéristique magique utilisée, déjà divisée par 10
++    nv: float = 0.0    # Niveau moyen (voir calculer_nv)
++
++
++def calculer_cout_sort(
++    c: ComposantsSort,
++    c1: float, c2: float, c3: float, c4: float, c6: float,
++) -> float:
++    """Coût du sort en PP, formule du livre p.126 :
++
++        (((Pi×1,2 + Pd + En) × (Ex+1)) × C1) × ((Nb + (Tz×Z)×1,5) × (C2×0,5))
++        × C3 × (C4+C6) / (Nv×1,5 + Cm×3)
++
++    NOTE sur En : le livre ajoute En une fois ici, alors qu'En intervient
++    déjà dans le calcul de Pd lui-même (Pd = (Ed+En)×(D+Napp+F)÷2, voir le
++    tableau des abréviations p.126). C'est bien ce que dit le livre tel
++    quel : on l'implémente sans le "corriger", conformément à la décision
++    du 09/08/2026 de suivre le livre à la lettre plutôt que d'interpréter.
++    Si un sort n'a pas d'entrave, en=0 et ce terme ne change rien au calcul.
++
++    Le livre indique un minimum de 1 PP pour le coût final - ce plancher
++    n'est PAS appliqué ici (garder la fonction pure), il doit être appliqué
++    par l'appelant : max(1, calculer_cout_sort(...)).
++    """
++    if c4 + c6 == 0 and (c.nv * 1.5 + c.cm * 3) == 0:
++        raise ValueError("Diviseur nul : Nv et Cm ne peuvent pas être tous deux à 0")
++
++    facteur_puissance = (c.pi * 1.2 + c.pd + c.en) * (c.ex + 1) * c1
++    facteur_cibles = (c.nb + (c.tz * c.z) * 1.5) * (c2 * 0.5)
++    numerateur = facteur_puissance * facteur_cibles * c3 * (c4 + c6)
++    denominateur = c.nv * 1.5 + c.cm * 3
++
++    return numerateur / denominateur
++
++
++def calculer_cast_sort(
++    c: ComposantsSort,
++    c1: float, c2: float, c3: float, c5: float, c7: float,
++) -> float:
++    """Cast du sort (temps de lancement), formule du livre p.126 :
++
++        (((Pi÷2 + Pd×2 + En) × (Ex+1)) × C1) × ((Nb×1,5 + (Tz×Z)) × C2)
++        × Po × C3 × (C5+C7) / (Nv×4 + Cm)
++
++    Le livre indique que le minimum de temps de Cast est de 0 (le sort part
++    au moment même où le lanceur commence à le lancer) - contrairement au
++    Coût, aucun plancher à appliquer ici.
++
++    Pour l'Alchimie (et tout Type utilisant un Long-sort), cette fonction
++    NE S'APPLIQUE PAS : le Long-sort est une valeur de palier choisie
++    directement dans sa propre table (magie_generic_long_sort), pas un
++    résultat de cette équation. Voir SortBase.est_long_sort dans
++    models_magie.py.
++    """
++    if (c.nv * 4 + c.cm) == 0:
++        raise ValueError("Diviseur nul : Nv et Cm ne peuvent pas être tous deux à 0")
++
++    facteur_puissance = (c.pi / 2 + c.pd * 2 + c.en) * (c.ex + 1) * c1
++    facteur_cibles = (c.nb * 1.5 + (c.tz * c.z)) * c2
++    numerateur = facteur_puissance * facteur_cibles * c.po * c3 * (c5 + c7)
++    denominateur = c.nv * 4 + c.cm
++
++    return numerateur / denominateur
++
++
++# ---------------------------------------------------------------------------
++# Auto-test - vérifie la non-régression sur un sort connu
++# ---------------------------------------------------------------------------
++
++if __name__ == "__main__":
++    # "Peau d'emprunt" (Alchimie / Chair / Transmutation), sort de contrôle
++    # utilisé pendant les tests de comparaison livre/tableur du 09/08/2026.
++    # Constantes issues des tables extraites du LIVRE (pas du tableur).
++    composants = ComposantsSort(
++        pi=15, pd=0, en=0, ex=0,
++        nb=1, tz=0, z=1, po=0.3,
++        cm=3, nv=5.25,
++    )
++    # Chair x Transmutation (C1), Alchimie x Chair (C2), Alchimie x Transmutation (C3)
++    # Alchimie (C4, C5), Chair (C6, C7)
++    c1, c2, c3, c4, c5, c6, c7 = 1.5, 1, 0.5, 1, 2, 0.95, 1.25
++
++    cout = calculer_cout_sort(composants, c1, c2, c3, c4, c6)
++    cast = calculer_cast_sort(composants, c1, c2, c3, c5, c7)
++
++    print(f"Coût (livre) : {cout:.4f}  (attendu ~0.78)")
++    print(f"Cast (livre) : {cast:.4f}  (attendu ~0.3428)")
++
++    assert abs(cout - 0.78) < 0.001, "Régression détectée sur le calcul du Coût"
++    assert abs(cast - 0.3428) < 0.001, "Régression détectée sur le calcul du Cast"
++    print("OK - auto-test passé")
+diff --git a/api/scripts/data_magie/c1_aspect_ecole.json b/api/scripts/data_magie/c1_aspect_ecole.json
+new file mode 100644
+index 0000000..f087305
+--- /dev/null
++++ b/api/scripts/data_magie/c1_aspect_ecole.json
+@@ -0,0 +1,14 @@
++{
++  "Acide":       {"Abjuration":1,   "Alteration":0.5, "Animation":1.5, "Destruction":0.5, "Divination":1.5, "Guerison":1,   "Illusion":1.5, "Invocation":1,   "Transmutation":0.5},
++  "Air":         {"Abjuration":1,   "Alteration":0.5, "Animation":1.5, "Destruction":1.5, "Divination":0.5, "Guerison":1,   "Illusion":1,   "Invocation":0.5, "Transmutation":1.5},
++  "Bois":        {"Abjuration":1.5, "Alteration":0.5, "Animation":0.5, "Destruction":1.5, "Divination":1,   "Guerison":0.5, "Illusion":1.5, "Invocation":0.5, "Transmutation":1},
++  "Chair":       {"Abjuration":1.5, "Alteration":0.5, "Animation":0.5, "Destruction":1,   "Divination":1,   "Guerison":0.5, "Illusion":1,   "Invocation":1.5, "Transmutation":1.5},
++  "Electricite": {"Abjuration":1,   "Alteration":0.5, "Animation":1.5, "Destruction":1,   "Divination":1.5, "Guerison":1,   "Illusion":0.5, "Invocation":0.5, "Transmutation":1.5},
++  "Feu/Chaleur": {"Abjuration":1.5, "Alteration":1,   "Animation":1.5, "Destruction":0.5, "Divination":0.5, "Guerison":1,   "Illusion":1,   "Invocation":0.5, "Transmutation":1.5},
++  "Glace/Froid": {"Abjuration":0.5, "Alteration":1,   "Animation":1,   "Destruction":1,   "Divination":1.5, "Guerison":1.5, "Illusion":1.5, "Invocation":0.5, "Transmutation":0.5},
++  "Eau":         {"Abjuration":1.5, "Alteration":0.5, "Animation":1.5, "Destruction":1,   "Divination":0.5, "Guerison":1,   "Illusion":1.5, "Invocation":0.5, "Transmutation":1},
++  "Lumiere":     {"Abjuration":0.5, "Alteration":1.5, "Animation":1.5, "Destruction":1.5, "Divination":1,   "Guerison":0.5, "Illusion":0.5, "Invocation":1,   "Transmutation":1},
++  "Metal":       {"Abjuration":1.5, "Alteration":0.5, "Animation":1,   "Destruction":0.5, "Divination":1.5, "Guerison":1,   "Illusion":1.5, "Invocation":1,   "Transmutation":0.5},
++  "Son":         {"Abjuration":0.5, "Alteration":1.5, "Animation":1.5, "Destruction":0.5, "Divination":1,   "Guerison":1,   "Illusion":0.5, "Invocation":1,   "Transmutation":1.5},
++  "Terre":       {"Abjuration":1.5, "Alteration":0.5, "Animation":0.5, "Destruction":1.5, "Divination":1,   "Guerison":1,   "Illusion":1.5, "Invocation":1,   "Transmutation":0.5}
++}
+diff --git a/api/scripts/data_magie/c1_tableur_complet.json b/api/scripts/data_magie/c1_tableur_complet.json
+new file mode 100644
+index 0000000..812c1c6
+--- /dev/null
++++ b/api/scripts/data_magie/c1_tableur_complet.json
+@@ -0,0 +1,134 @@
++{
++  "Acide": {
++    "Abjuration": 1,
++    "Altération": 0.5,
++    "Animation": 1.5,
++    "Destruction": 0.5,
++    "Divination": 1.5,
++    "Guérison": 1,
++    "Illusion": 1.5,
++    "Invocation": 1,
++    "Transmutation": 0.5
++  },
++  "Air": {
++    "Abjuration": 1,
++    "Altération": 0.5,
++    "Animation": 1.5,
++    "Destruction": 1.5,
++    "Divination": 0.5,
++    "Guérison": 1,
++    "Illusion": 1,
++    "Invocation": 0.5,
++    "Transmutation": 1.5
++  },
++  "Bois": {
++    "Abjuration": 1.5,
++    "Altération": 0.5,
++    "Animation": 0.5,
++    "Destruction": 1,
++    "Divination": 1.5,
++    "Guérison": 0.5,
++    "Illusion": 1.5,
++    "Invocation": 0.5,
++    "Transmutation": 1
++  },
++  "Chair": {
++    "Abjuration": 1.5,
++    "Altération": 0.5,
++    "Animation": 0.5,
++    "Destruction": 1,
++    "Divination": 1,
++    "Guérison": 0.5,
++    "Illusion": 1,
++    "Invocation": 1.5,
++    "Transmutation": 1.5
++  },
++  "Electricité": {
++    "Abjuration": 1,
++    "Altération": 0.5,
++    "Animation": 1.5,
++    "Destruction": 1,
++    "Divination": 1.5,
++    "Guérison": 1,
++    "Illusion": 0.5,
++    "Invocation": 0.5,
++    "Transmutation": 1.5
++  },
++  "Feu/Chaleur": {
++    "Abjuration": 1.5,
++    "Altération": 1,
++    "Animation": 1.5,
++    "Destruction": 0.5,
++    "Divination": 0.5,
++    "Guérison": 1,
++    "Illusion": 1,
++    "Invocation": 0.5,
++    "Transmutation": 1.5
++  },
++  "Glace/Froid": {
++    "Abjuration": 0.5,
++    "Altération": 1,
++    "Animation": 1,
++    "Destruction": 1,
++    "Divination": 1.5,
++    "Guérison": 1.5,
++    "Illusion": 1.5,
++    "Invocation": 0.5,
++    "Transmutation": 0.5
++  },
++  "Eau": {
++    "Abjuration": 1.5,
++    "Altération": 0.5,
++    "Animation": 1.5,
++    "Destruction": 1,
++    "Divination": 0.5,
++    "Guérison": 1,
++    "Illusion": 1.5,
++    "Invocation": 0.5,
++    "Transmutation": 1
++  },
++  "Lumière": {
++    "Abjuration": 0.5,
++    "Altération": 1.5,
++    "Animation": 1.5,
++    "Destruction": 1.5,
++    "Divination": 1,
++    "Guérison": 0.5,
++    "Illusion": 0.5,
++    "Invocation": 1,
++    "Transmutation": 1
++  },
++  "Métal": {
++    "Abjuration": 1.5,
++    "Altération": 0.5,
++    "Animation": 1,
++    "Destruction": 0.5,
++    "Divination": 1.5,
++    "Guérison": 1,
++    "Illusion": 1.5,
++    "Invocation": 1,
++    "Transmutation": 0.5
++  },
++  "Son": {
++    "Abjuration": 0.5,
++    "Altération": 1.5,
++    "Animation": 1.5,
++    "Destruction": 1,
++    "Divination": 0.5,
++    "Guérison": 1,
++    "Illusion": 0.5,
++    "Invocation": 1,
++    "Transmutation": 1.5
++  },
++  "Terre": {
++    "Abjuration": 1.5,
++    "Altération": 0.5,
++    "Animation": 0.5,
++    "Destruction": 1.5,
++    "Divination": 1,
++    "Guérison": 1,
++    "Illusion": 1.5,
++    "Invocation": 1,
++    "Transmutation": 0.5
++  }
++}
+\ No newline at end of file
+diff --git a/api/scripts/data_magie/c2_tableur_complet.json b/api/scripts/data_magie/c2_tableur_complet.json
+new file mode 100644
+index 0000000..210f3bc
+--- /dev/null
++++ b/api/scripts/data_magie/c2_tableur_complet.json
+@@ -0,0 +1,240 @@
++{
++  "Arcanique": {
++    "Acide": 1.5,
++    "Air": 1,
++    "Bois": 1.5,
++    "Chair": 1.5,
++    "Electricité": 1,
++    "Feu/Chaleur": 3,
++    "Glace/Froid": 3,
++    "Eau": 1.5,
++    "Lumière": 0.5,
++    "Métal": 3,
++    "Son": 2,
++    "Terre": 3.5
++  },
++  "Technomantique": {
++    "Acide": 1,
++    "Air": 1.5,
++    "Bois": 3,
++    "Chair": 2,
++    "Electricité": 1,
++    "Feu/Chaleur": 1,
++    "Glace/Froid": 1.5,
++    "Eau": 0.5,
++    "Lumière": 2.5,
++    "Métal": 3.5,
++    "Son": 2,
++    "Terre": 3
++  },
++  "Logomancie": {
++    "Acide": 1.5,
++    "Air": 1.5,
++    "Bois": 4,
++    "Chair": 1.5,
++    "Electricité": 1,
++    "Feu/Chaleur": 0.5,
++    "Glace/Froid": 1,
++    "Eau": 2.5,
++    "Lumière": 2,
++    "Métal": 3,
++    "Son": 1,
++    "Terre": 3.5
++  },
++  "Enchantement": {
++    "Acide": 2,
++    "Air": 2,
++    "Bois": 2,
++    "Chair": 2,
++    "Electricité": 2,
++    "Feu/Chaleur": 2,
++    "Glace/Froid": 2,
++    "Eau": 2,
++    "Lumière": 2,
++    "Métal": 2,
++    "Son": 2,
++    "Terre": 2
++  },
++  "Rituelle": {
++    "Acide": 3.5,
++    "Air": 0.5,
++    "Bois": 1.5,
++    "Chair": 1.5,
++    "Electricité": 1,
++    "Feu/Chaleur": 1,
++    "Glace/Froid": 1,
++    "Eau": 1.5,
++    "Lumière": 1.5,
++    "Métal": 3,
++    "Son": 4,
++    "Terre": 3
++  },
++  "Précative": {
++    "Acide": 1.5,
++    "Air": 4,
++    "Bois": 3.5,
++    "Chair": 1.5,
++    "Electricité": 3,
++    "Feu/Chaleur": 1,
++    "Glace/Froid": 1.5,
++    "Eau": 1,
++    "Lumière": 1,
++    "Métal": 2.5,
++    "Son": 0.5,
++    "Terre": 2
++  },
++  "Psychomantique": {
++    "Acide": 3,
++    "Air": 1,
++    "Bois": 2,
++    "Chair": 1.5,
++    "Electricité": 0.5,
++    "Feu/Chaleur": 1,
++    "Glace/Froid": 1.5,
++    "Eau": 1,
++    "Lumière": 1.5,
++    "Métal": 4,
++    "Son": 2.5,
++    "Terre": 3.5
++  },
++  "Saltomancie": {
++    "Acide": 1.5,
++    "Air": 0.5,
++    "Bois": 2,
++    "Chair": 4,
++    "Electricité": 1,
++    "Feu/Chaleur": 1.5,
++    "Glace/Froid": 1.5,
++    "Eau": 1.5,
++    "Lumière": 1,
++    "Métal": 3.5,
++    "Son": 2,
++    "Terre": 3
++  },
++  "Bestiale": {
++    "Acide": 1,
++    "Air": 2.5,
++    "Bois": 2,
++    "Chair": 0.5,
++    "Electricité": 2,
++    "Feu/Chaleur": 0.5,
++    "Glace/Froid": 2.5,
++    "Eau": 3,
++    "Lumière": 1.5,
++    "Métal": 2.5,
++    "Son": 1.5,
++    "Terre": 2.5
++  },
++  "Bardique": {
++    "Acide": 3.5,
++    "Air": 1,
++    "Bois": 2,
++    "Chair": 3,
++    "Electricité": 1.5,
++    "Feu/Chaleur": 1.5,
++    "Glace/Froid": 4,
++    "Eau": 1.5,
++    "Lumière": 1,
++    "Métal": 2.5,
++    "Son": 0.5,
++    "Terre": 1
++  },
++  "Alchimie": {
++    "Acide": 0.5,
++    "Air": 4,
++    "Bois": 3,
++    "Chair": 1,
++    "Electricité": 2,
++    "Feu/Chaleur": 1.5,
++    "Glace/Froid": 1,
++    "Eau": 1.5,
++    "Lumière": 1.5,
++    "Métal": 3,
++    "Son": 1.5,
++    "Terre": 2.5
++  },
++  "Plastique": {
++    "Acide": 1.5,
++    "Air": 1.5,
++    "Bois": 1,
++    "Chair": 2,
++    "Electricité": 3,
++    "Feu/Chaleur": 4,
++    "Glace/Froid": 3.5,
++    "Eau": 1.5,
++    "Lumière": 1,
++    "Métal": 1.5,
++    "Son": 2,
++    "Terre": 0.5
++  },
++  "Scriptorale": {
++    "Acide": 4,
++    "Air": 1,
++    "Bois": 1.5,
++    "Chair": 1,
++    "Electricité": 0.5,
++    "Feu/Chaleur": 1.5,
++    "Glace/Froid": 2,
++    "Eau": 1.5,
++    "Lumière": 1,
++    "Métal": 2.5,
++    "Son": 3.5,
++    "Terre": 3
++  },
++  "Spirituelle": {
++    "Acide": 2,
++    "Air": 1,
++    "Bois": 1.5,
++    "Chair": 1.5,
++    "Electricité": 1,
++    "Feu/Chaleur": 4,
++    "Glace/Froid": 3.5,
++    "Eau": 1,
++    "Lumière": 0.5,
++    "Métal": 3,
++    "Son": 1.5,
++    "Terre": 2.5
++  },
++  "Moniale": {
++    "Acide": 3.5,
++    "Air": 2,
++    "Bois": 0.5,
++    "Chair": 2,
++    "Electricité": 2.5,
++    "Feu/Chaleur": 2,
++    "Glace/Froid": 4,
++    "Eau": 1,
++    "Lumière": 1.5,
++    "Métal": 1,
++    "Son": 2.5,
++    "Terre": 0.5
++  },
++  "Runique": {
++    "Acide": 3.5,
++    "Air": 4,
++    "Bois": 0.5,
++    "Chair": 3,
++    "Electricité": 2.5,
++    "Feu/Chaleur": 1.5,
++    "Glace/Froid": 1,
++    "Eau": 1.5,
++    "Lumière": 1.5,
++    "Métal": 1,
++    "Son": 1.5,
++    "Terre": 1
++  },
++  "Technogestuelle": {
++    "Acide": 4,
++    "Air": 1,
++    "Bois": 1,
++    "Chair": 1,
++    "Electricité": 2,
++    "Feu/Chaleur": 2,
++    "Glace/Froid": 2,
++    "Eau": 3,
++    "Lumière": 1.5,
++    "Métal": 1,
++    "Son": 3,
++    "Terre": 0.5
++  }
++}
+\ No newline at end of file
+diff --git a/api/scripts/data_magie/c2_type_aspect.json b/api/scripts/data_magie/c2_type_aspect.json
+new file mode 100644
+index 0000000..a59d6bf
+--- /dev/null
++++ b/api/scripts/data_magie/c2_type_aspect.json
+@@ -0,0 +1,19 @@
++{
++  "Arcanique":      {"Acide":1.5,"Air":1,"Bois":1.5,"Chair":1.5,"Electricite":1,"Feu/Chaleur":3,"Glace/Froid":3,"Eau":1.5,"Lumiere":1,"Metal":3,"Son":2,"Terre":3.5},
++  "Psychomantique": {"Acide":3,"Air":1,"Bois":2,"Chair":1.5,"Electricite":1.5,"Feu/Chaleur":1,"Glace/Froid":1.5,"Eau":1,"Lumiere":1.5,"Metal":4,"Son":2.5,"Terre":3.5},
++  "Technomantique": {"Acide":1,"Air":1.5,"Bois":3,"Chair":2,"Electricite":1,"Feu/Chaleur":1,"Glace/Froid":1.5,"Eau":1,"Lumiere":2.5,"Metal":3.5,"Son":2,"Terre":3},
++  "Spirituelle":    {"Acide":2,"Air":1,"Bois":1.5,"Chair":1.5,"Electricite":1,"Feu/Chaleur":4,"Glace/Froid":3.5,"Eau":1,"Lumiere":1,"Metal":3,"Son":1.5,"Terre":2.5},
++  "Saltomancie":    {"Acide":1.5,"Air":1,"Bois":2,"Chair":4,"Electricite":1,"Feu/Chaleur":1.5,"Glace/Froid":1.5,"Eau":1.5,"Lumiere":1,"Metal":3.5,"Son":2,"Terre":3},
++  "Moniale":        {"Acide":3.5,"Air":2,"Bois":1,"Chair":2,"Electricite":2.5,"Feu/Chaleur":2,"Glace/Froid":4,"Eau":1,"Lumiere":1.5,"Metal":1,"Son":2.5,"Terre":1},
++  "Bestiale":       {"Acide":1,"Air":2.5,"Bois":2,"Chair":1,"Electricite":2,"Feu/Chaleur":1,"Glace/Froid":2.5,"Eau":3,"Lumiere":1.5,"Metal":2.5,"Son":1.5,"Terre":2.5},
++  "Technogestuelle":{"Acide":4,"Air":1,"Bois":1,"Chair":1,"Electricite":2,"Feu/Chaleur":2,"Glace/Froid":2,"Eau":3,"Lumiere":1.5,"Metal":1,"Son":3,"Terre":1},
++  "Rituelle":       {"Acide":1.5,"Air":4,"Bois":3.5,"Chair":1.5,"Electricite":3,"Feu/Chaleur":1,"Glace/Froid":1.5,"Eau":1,"Lumiere":1,"Metal":2.5,"Son":1,"Terre":2},
++  "Bardique":       {"Acide":3.5,"Air":1,"Bois":2,"Chair":3,"Electricite":1.5,"Feu/Chaleur":1.5,"Glace/Froid":4,"Eau":1.5,"Lumiere":1,"Metal":2.5,"Son":1,"Terre":1},
++  "Logomancie":     {"Acide":1.5,"Air":1.5,"Bois":4,"Chair":1.5,"Electricite":1,"Feu/Chaleur":1,"Glace/Froid":1,"Eau":1,"Lumiere":2.5,"Metal":2,"Son":3,"Terre":1},
++  "Precative":      {"Acide":1.5,"Air":4,"Bois":3.5,"Chair":1.5,"Electricite":3,"Feu/Chaleur":1,"Glace/Froid":1.5,"Eau":1,"Lumiere":1,"Metal":2.5,"Son":1,"Terre":2},
++  "Alchimie":       {"Acide":1,"Air":4,"Bois":3,"Chair":1,"Electricite":2,"Feu/Chaleur":1.5,"Glace/Froid":1,"Eau":1.5,"Lumiere":1.5,"Metal":3,"Son":1.5,"Terre":2.5},
++  "Plastique":      {"Acide":1.5,"Air":1.5,"Bois":1,"Chair":2,"Electricite":3,"Feu/Chaleur":4,"Glace/Froid":3.5,"Eau":1.5,"Lumiere":1,"Metal":1.5,"Son":2,"Terre":1},
++  "Enchantement":   {"Acide":2,"Air":2,"Bois":2,"Chair":2,"Electricite":2,"Feu/Chaleur":2,"Glace/Froid":2,"Eau":2,"Lumiere":2,"Metal":2,"Son":2,"Terre":2},
++  "Runique":        {"Acide":3.5,"Air":4,"Bois":1,"Chair":3,"Electricite":2.5,"Feu/Chaleur":1.5,"Glace/Froid":1,"Eau":1.5,"Lumiere":1.5,"Metal":1,"Son":1.5,"Terre":1},
++  "Scriptorale":    {"Acide":4,"Air":1,"Bois":1.5,"Chair":1,"Electricite":1,"Feu/Chaleur":1.5,"Glace/Froid":2,"Eau":1.5,"Lumiere":1,"Metal":2.5,"Son":3.5,"Terre":3}
++}
+diff --git a/api/scripts/data_magie/c3_tableur_complet.json b/api/scripts/data_magie/c3_tableur_complet.json
+new file mode 100644
+index 0000000..6fb5822
+--- /dev/null
++++ b/api/scripts/data_magie/c3_tableur_complet.json
+@@ -0,0 +1,189 @@
++{
++  "Arcanique": {
++    "Abjuration": 1,
++    "Altération": 1,
++    "Animation": 2,
++    "Destruction": 2,
++    "Divination": 1.5,
++    "Illusion": 0.5,
++    "Invocation": 0.5,
++    "Guérison": 0.5,
++    "Transmutation": 1.5
++  },
++  "Technomantique": {
++    "Abjuration": 0.5,
++    "Altération": 0.5,
++    "Animation": 2,
++    "Destruction": 1.5,
++    "Divination": 1,
++    "Illusion": 2,
++    "Invocation": 1.5,
++    "Guérison": 0.5,
++    "Transmutation": 1
++  },
++  "Logomancie": {
++    "Abjuration": 1,
++    "Altération": 2,
++    "Animation": 1,
++    "Destruction": 0.5,
++    "Divination": 1.5,
++    "Illusion": 1,
++    "Invocation": 0.5,
++    "Guérison": 1.5,
++    "Transmutation": 1.5
++  },
++  "Runique": {
++    "Abjuration": 2,
++    "Altération": 0.5,
++    "Animation": 0.5,
++    "Destruction": 2,
++    "Divination": 1.5,
++    "Illusion": 1,
++    "Invocation": 1.5,
++    "Guérison": 0.5,
++    "Transmutation": 1
++  },
++  "Rituelle": {
++    "Abjuration": 1,
++    "Altération": 0.5,
++    "Animation": 2,
++    "Destruction": 2,
++    "Divination": 0.5,
++    "Illusion": 1.5,
++    "Invocation": 1.5,
++    "Guérison": 1,
++    "Transmutation": 0.5
++  },
++  "Précative": {
++    "Abjuration": 1.5,
++    "Altération": 1.5,
++    "Animation": 1,
++    "Destruction": 2,
++    "Divination": 0.5,
++    "Illusion": 0.5,
++    "Invocation": 1,
++    "Guérison": 2,
++    "Transmutation": 0.5
++  },
++  "Psychomantique": {
++    "Abjuration": 0.5,
++    "Altération": 2,
++    "Animation": 1.5,
++    "Destruction": 1,
++    "Divination": 0.5,
++    "Illusion": 1,
++    "Invocation": 0.5,
++    "Guérison": 1.5,
++    "Transmutation": 2
++  },
++  "Saltomancie": {
++    "Abjuration": 0.5,
++    "Altération": 1,
++    "Animation": 2,
++    "Destruction": 1,
++    "Divination": 0.5,
++    "Illusion": 1.5,
++    "Invocation": 0.5,
++    "Guérison": 1.5,
++    "Transmutation": 2
++  },
++  "Bestiale": {
++    "Abjuration": 2,
++    "Altération": 0.5,
++    "Animation": 2,
++    "Destruction": 0.5,
++    "Divination": 1.5,
++    "Illusion": 1,
++    "Invocation": 1.5,
++    "Guérison": 0.5,
++    "Transmutation": 1
++  },
++  "Bardique": {
++    "Abjuration": 0.5,
++    "Altération": 1,
++    "Animation": 0.5,
++    "Destruction": 2,
++    "Divination": 1.5,
++    "Illusion": 1.5,
++    "Invocation": 0.5,
++    "Guérison": 2,
++    "Transmutation": 1
++  },
++  "Alchimie": {
++    "Abjuration": 2,
++    "Altération": 0.5,
++    "Animation": 2,
++    "Destruction": 2,
++    "Divination": 1,
++    "Illusion": 0.5,
++    "Invocation": 1,
++    "Guérison": 1,
++    "Transmutation": 0.5
++  },
++  "Plastique": {
++    "Abjuration": 0.5,
++    "Altération": 1.5,
++    "Animation": 2,
++    "Destruction": 1,
++    "Divination": 0.5,
++    "Illusion": 1.5,
++    "Invocation": 0.5,
++    "Guérison": 2,
++    "Transmutation": 1
++  },
++  "Scriptorale": {
++    "Abjuration": 1,
++    "Altération": 1.5,
++    "Animation": 1,
++    "Destruction": 2,
++    "Divination": 1.5,
++    "Illusion": 1,
++    "Invocation": 0.5,
++    "Guérison": 1.5,
++    "Transmutation": 0.5
++  },
++  "Spirituelle": {
++    "Abjuration": 0.5,
++    "Altération": 1,
++    "Animation": 1.5,
++    "Destruction": 2,
++    "Divination": 0.5,
++    "Illusion": 2,
++    "Invocation": 1,
++    "Guérison": 0.5,
++    "Transmutation": 1.5
++  },
++  "Moniale": {
++    "Abjuration": 0.5,
++    "Altération": 1,
++    "Animation": 1.5,
++    "Destruction": 2,
++    "Divination": 0.5,
++    "Illusion": 1,
++    "Invocation": 2,
++    "Guérison": 1.5,
++    "Transmutation": 0.5
++  },
++  "Enchantement": {
++    "Abjuration": 1,
++    "Altération": 0.5,
++    "Animation": 2,
++    "Destruction": 1.5,
++    "Divination": 1,
++    "Illusion": 1,
++    "Invocation": 1,
++    "Guérison": 0.5,
++    "Transmutation": 1.5
++  },
++  "Technogestuelle": {
++    "Abjuration": 1.5,
++    "Altération": 0.5,
++    "Animation": 2,
++    "Destruction": 0.5,
++    "Divination": 1.5,
++    "Illusion": 1,
++    "Invocation": 1.5,
++    "Guérison": 0.5,
++    "Transmutation": 1.5
++  }
++}
+\ No newline at end of file
+diff --git a/api/scripts/data_magie/c3_type_ecole.json b/api/scripts/data_magie/c3_type_ecole.json
+new file mode 100644
+index 0000000..5d61c81
+--- /dev/null
++++ b/api/scripts/data_magie/c3_type_ecole.json
+@@ -0,0 +1,19 @@
++{
++  "Arcanique":      {"Abjuration":1,  "Alteration":1,  "Animation":2,  "Destruction":2,  "Divination":1.5,"Guerison":0.5,"Illusion":0.5,"Invocation":0.5,"Transmutation":1.5},
++  "Psychomantique": {"Abjuration":0.5,"Alteration":2,  "Animation":1.5,"Destruction":1,  "Divination":0.5,"Guerison":1,  "Illusion":0.5,"Invocation":1.5,"Transmutation":2},
++  "Technomantique": {"Abjuration":0.5,"Alteration":0.5,"Animation":2,  "Destruction":1,  "Divination":1.5,"Guerison":2,  "Illusion":1.5,"Invocation":0.5,"Transmutation":1},
++  "Spirituelle":    {"Abjuration":0.5,"Alteration":1,  "Animation":1.5,"Destruction":2,  "Divination":0.5,"Guerison":2,  "Illusion":1,  "Invocation":0.5,"Transmutation":1.5},
++  "Saltomancie":    {"Abjuration":0.5,"Alteration":1,  "Animation":2,  "Destruction":1,  "Divination":0.5,"Guerison":1.5,"Illusion":0.5,"Invocation":1.5,"Transmutation":2},
++  "Moniale":        {"Abjuration":0.5,"Alteration":1,  "Animation":1.5,"Destruction":2,  "Divination":0.5,"Guerison":1,  "Illusion":2,  "Invocation":1.5,"Transmutation":0.5},
++  "Bestiale":       {"Abjuration":2,  "Alteration":0.5,"Animation":2,  "Destruction":0.5,"Divination":1.5,"Guerison":1,  "Illusion":1.5,"Invocation":0.5,"Transmutation":1},
++  "Technogestuelle":{"Abjuration":1.5,"Alteration":0.5,"Animation":2,  "Destruction":0.5,"Divination":1.5,"Guerison":1,  "Illusion":1.5,"Invocation":0.5,"Transmutation":1.5},
++  "Rituelle":       {"Abjuration":1,  "Alteration":0.5,"Animation":2,  "Destruction":2,  "Divination":0.5,"Guerison":1.5,"Illusion":1.5,"Invocation":1,  "Transmutation":0.5},
++  "Bardique":       {"Abjuration":0.5,"Alteration":1,  "Animation":0.5,"Destruction":2,  "Divination":1.5,"Guerison":1.5,"Illusion":0.5,"Invocation":2,  "Transmutation":1},
++  "Logomancie":     {"Abjuration":1,  "Alteration":2,  "Animation":1,  "Destruction":1.5,"Divination":0.5,"Guerison":1,  "Illusion":0.5,"Invocation":1.5,"Transmutation":1.5},
++  "Precative":      {"Abjuration":1.5,"Alteration":1.5,"Animation":1,  "Destruction":2,  "Divination":0.5,"Guerison":0.5,"Illusion":1,  "Invocation":2,  "Transmutation":0.5},
++  "Alchimie":       {"Abjuration":2,  "Alteration":0.5,"Animation":2,  "Destruction":2,  "Divination":1,  "Guerison":0.5,"Illusion":1,  "Invocation":1,  "Transmutation":0.5},
++  "Plastique":      {"Abjuration":0.5,"Alteration":1.5,"Animation":2,  "Destruction":1,  "Divination":0.5,"Guerison":1.5,"Illusion":0.5,"Invocation":2,  "Transmutation":1},
++  "Enchantement":   {"Abjuration":1,  "Alteration":0.5,"Animation":2,  "Destruction":1.5,"Divination":1,  "Guerison":1,  "Illusion":1,  "Invocation":0.5,"Transmutation":1.5},
++  "Runique":        {"Abjuration":2,  "Alteration":0.5,"Animation":0.5,"Destruction":1.5,"Divination":2,  "Guerison":1,  "Illusion":1.5,"Invocation":0.5,"Transmutation":1},
++  "Scriptorale":    {"Abjuration":1,  "Alteration":1.5,"Animation":1,  "Destruction":2,  "Divination":1.5,"Guerison":1,  "Illusion":0.5,"Invocation":1.5,"Transmutation":0.5}
++}
+diff --git a/api/scripts/data_magie/c4_c5_type.json b/api/scripts/data_magie/c4_c5_type.json
+new file mode 100644
+index 0000000..f1026d2
+--- /dev/null
++++ b/api/scripts/data_magie/c4_c5_type.json
+@@ -0,0 +1,19 @@
++{
++  "Arcanique":      {"C4":1,   "C5":1},
++  "Psychomantique": {"C4":1,   "C5":1},
++  "Technomantique": {"C4":1.1, "C5":0.9},
++  "Spirituelle":    {"C4":1,   "C5":1},
++  "Saltomancie":    {"C4":1.1, "C5":0.9},
++  "Moniale":        {"C4":1.2, "C5":0.8},
++  "Bestiale":       {"C4":1.4, "C5":0.6},
++  "Technogestuelle":{"C4":1.2, "C5":0.8},
++  "Rituelle":       {"C4":0.8, "C5":1.2},
++  "Bardique":       {"C4":0.9, "C5":1.1},
++  "Logomancie":     {"C4":0.8, "C5":1.2},
++  "Precative":      {"C4":1,   "C5":1},
++  "Alchimie":       {"C4":1,   "C5":2},
++  "Plastique":      {"C4":1,   "C5":1},
++  "Enchantement":   {"C4":1.4, "C5":2},
++  "Runique":        {"C4":0.8, "C5":1.5},
++  "Scriptorale":    {"C4":0.8, "C5":1.5}
++}
+diff --git a/api/scripts/data_magie/c6_c7_aspect.json b/api/scripts/data_magie/c6_c7_aspect.json
+new file mode 100644
+index 0000000..c28a0cb
+--- /dev/null
++++ b/api/scripts/data_magie/c6_c7_aspect.json
+@@ -0,0 +1,14 @@
++{
++  "Acide":       {"C6":1.1,  "C7":1.1},
++  "Air":         {"C6":1.2,  "C7":1},
++  "Bois":        {"C6":1.05, "C7":1.15},
++  "Chair":       {"C6":0.95, "C7":1.25},
++  "Electricite": {"C6":1.15, "C7":1.05},
++  "Feu/Chaleur": {"C6":0.95, "C7":1.25},
++  "Glace/Froid": {"C6":0.95, "C7":1.25},
++  "Eau":         {"C6":0.9,  "C7":1.3},
++  "Lumiere":     {"C6":1.3,  "C7":0.9},
++  "Metal":       {"C6":1.1,  "C7":1.1},
++  "Son":         {"C6":1.2,  "C7":1},
++  "Terre":       {"C6":0.8,  "C7":1.4}
++}
+diff --git a/api/scripts/data_magie/diffs_c2_final.json b/api/scripts/data_magie/diffs_c2_final.json
+new file mode 100644
+index 0000000..045f0e8
+--- /dev/null
++++ b/api/scripts/data_magie/diffs_c2_final.json
+@@ -0,0 +1 @@
++[["Arcanique", "Lumiere", 0.5, 1], ["Technomantique", "Eau", 0.5, 1], ["Logomancie", "Feu/Chaleur", 0.5, 1], ["Logomancie", "Eau", 2.5, 1], ["Logomancie", "Lumiere", 2, 2.5], ["Logomancie", "Metal", 3, 2], ["Logomancie", "Son", 1, 3], ["Logomancie", "Terre", 3.5, 1], ["Rituelle", "Acide", 3.5, 1.5], ["Rituelle", "Air", 0.5, 4], ["Rituelle", "Bois", 1.5, 3.5], ["Rituelle", "Electricite", 1, 3], ["Rituelle", "Glace/Froid", 1, 1.5], ["Rituelle", "Eau", 1.5, 1], ["Rituelle", "Lumiere", 1.5, 1], ["Rituelle", "Metal", 3, 2.5], ["Rituelle", "Son", 4, 1], ["Rituelle", "Terre", 3, 2], ["Precative", "Son", 0.5, 1], ["Psychomantique", "Electricite", 0.5, 1.5], ["Saltomancie", "Air", 0.5, 1], ["Bestiale", "Chair", 0.5, 1], ["Bestiale", "Feu/Chaleur", 0.5, 1], ["Bardique", "Son", 0.5, 1], ["Alchimie", "Acide", 0.5, 1], ["Plastique", "Terre", 0.5, 1], ["Scriptorale", "Electricite", 0.5, 1], ["Spirituelle", "Lumiere", 0.5, 1], ["Moniale", "Bois", 0.5, 1], ["Moniale", "Terre", 0.5, 1], ["Runique", "Bois", 0.5, 1], ["Technogestuelle", "Terre", 0.5, 1]]
+\ No newline at end of file
+diff --git a/api/scripts/data_magie/diffs_c3_final.json b/api/scripts/data_magie/diffs_c3_final.json
+new file mode 100644
+index 0000000..07b1920
+--- /dev/null
++++ b/api/scripts/data_magie/diffs_c3_final.json
+@@ -0,0 +1 @@
++[["Technomantique", "Destruction", 1.5, 1], ["Technomantique", "Divination", 1, 1.5], ["Technomantique", "Illusion", 2, 1.5], ["Technomantique", "Invocation", 1.5, 0.5], ["Technomantique", "Guerison", 0.5, 2], ["Logomancie", "Destruction", 0.5, 1.5], ["Logomancie", "Divination", 1.5, 0.5], ["Logomancie", "Illusion", 1, 0.5], ["Logomancie", "Invocation", 0.5, 1.5], ["Logomancie", "Guerison", 1.5, 1], ["Runique", "Destruction", 2, 1.5], ["Runique", "Divination", 1.5, 2], ["Runique", "Illusion", 1, 1.5], ["Runique", "Invocation", 1.5, 0.5], ["Runique", "Guerison", 0.5, 1], ["Rituelle", "Invocation", 1.5, 1], ["Rituelle", "Guerison", 1, 1.5], ["Precative", "Illusion", 0.5, 1], ["Precative", "Invocation", 1, 2], ["Precative", "Guerison", 2, 0.5], ["Psychomantique", "Illusion", 1, 0.5], ["Psychomantique", "Invocation", 0.5, 1.5], ["Psychomantique", "Guerison", 1.5, 1], ["Saltomancie", "Illusion", 1.5, 0.5], ["Saltomancie", "Invocation", 0.5, 1.5], ["Bestiale", "Illusion", 1, 1.5], ["Bestiale", "Invocation", 1.5, 0.5], ["Bestiale", "Guerison", 0.5, 1], ["Bardique", "Illusion", 1.5, 0.5], ["Bardique", "Invocation", 0.5, 2], ["Bardique", "Guerison", 2, 1.5], ["Alchimie", "Illusion", 0.5, 1], ["Alchimie", "Guerison", 1, 0.5], ["Plastique", "Illusion", 1.5, 0.5], ["Plastique", "Invocation", 0.5, 2], ["Plastique", "Guerison", 2, 1.5], ["Scriptorale", "Illusion", 1, 0.5], ["Scriptorale", "Invocation", 0.5, 1.5], ["Scriptorale", "Guerison", 1.5, 1], ["Spirituelle", "Illusion", 2, 1], ["Spirituelle", "Invocation", 1, 0.5], ["Spirituelle", "Guerison", 0.5, 2], ["Moniale", "Illusion", 1, 2], ["Moniale", "Invocation", 2, 1.5], ["Moniale", "Guerison", 1.5, 1], ["Enchantement", "Invocation", 1, 0.5], ["Enchantement", "Guerison", 0.5, 1], ["Technogestuelle", "Illusion", 1, 1.5], ["Technogestuelle", "Invocation", 1.5, 0.5], ["Technogestuelle", "Guerison", 0.5, 1]]
+\ No newline at end of file
+diff --git a/api/scripts/data_magie/generic_action_physique_ex.json b/api/scripts/data_magie/generic_action_physique_ex.json
+new file mode 100644
+index 0000000..5f686f5
+--- /dev/null
++++ b/api/scripts/data_magie/generic_action_physique_ex.json
+@@ -0,0 +1 @@
++{"Armes d'hast lourde":1,"Armes d'hast legeres":0.8,"Armes contondantes":1.2,"Haches":1,"Armes de taille":0.8,"Armes d'estoc":0.8,"Sans armes Force":0.8,"Sans armes Agilite":0.6,"Boucliers lourds":1,"Boucliers legers":0.8,"Armes courtes":0.6,"Arbaletes legeres":1,"Arbaletes lourdes":1.2,"Armes a feu":1.2,"Arcs longs":1,"Arcs courts":1,"Frondes":0.8,"Agilite":0.8,"Eloquence":0.8,"Foi":0.6,"Force":1,"Intellect":1,"Perception":0.8}
+diff --git a/api/scripts/data_magie/generic_arret_cast.json b/api/scripts/data_magie/generic_arret_cast.json
+new file mode 100644
+index 0000000..8a55210
+--- /dev/null
++++ b/api/scripts/data_magie/generic_arret_cast.json
+@@ -0,0 +1 @@
++{"Adversaire nul":3,"Adversaire mediocre":5,"Adversaire normal":8,"Adversaire fort":13,"Adversaire superieur":20,"Adversaire legendaire":30}
+diff --git a/api/scripts/data_magie/generic_base_effet.json b/api/scripts/data_magie/generic_base_effet.json
+new file mode 100644
+index 0000000..e309141
+--- /dev/null
++++ b/api/scripts/data_magie/generic_base_effet.json
+@@ -0,0 +1 @@
++{"Base 2":1,"Base 3":2,"Base 4":3.25,"Base 5":4.5,"Base 6":5.5}
+diff --git a/api/scripts/data_magie/generic_bonus_caracteristique.json b/api/scripts/data_magie/generic_bonus_caracteristique.json
+new file mode 100644
+index 0000000..a89d8e9
+--- /dev/null
++++ b/api/scripts/data_magie/generic_bonus_caracteristique.json
+@@ -0,0 +1,4 @@
++{
++  "mineure_maitrise": {"+/-5%":2,"+/-10%":4,"+/-15%":7,"+/-20%":10,"+/-2% Crit":5,"+/-5% Crit":14,"+/-10% Crit":30},
++  "majeure":          {"+/-5%":4,"+/-10%":8,"+/-15%":14,"+/-20%":28,"+/-2% Crit":10,"+/-5% Crit":28,"+/-10% Crit":60}
++}
+diff --git a/api/scripts/data_magie/generic_controle_action_ex_combat.json b/api/scripts/data_magie/generic_controle_action_ex_combat.json
+new file mode 100644
+index 0000000..6bfffbd
+--- /dev/null
++++ b/api/scripts/data_magie/generic_controle_action_ex_combat.json
+@@ -0,0 +1 @@
++{"Immediat":null,"1 temp":0.1,"2 temps":0.2,"3 temps":0.3,"4 temps":0.4,"5 temps":0.6,"6 temps":0.8,"8 temps":1,"10 temps":1.3,"12 temps":1.6,"14 temps":1.9,"16 temps":2.2,"18 temps":2.6,"20 temps":3,"25 temps":3.5,"30 temps":4,"40 temps":5,"50 temps":6.5,"60 temps":8.5,"90 temps":11.5,"120 temps":15}
+diff --git a/api/scripts/data_magie/generic_controle_action_ex_horscombat.json b/api/scripts/data_magie/generic_controle_action_ex_horscombat.json
+new file mode 100644
+index 0000000..1f43ecc
+--- /dev/null
++++ b/api/scripts/data_magie/generic_controle_action_ex_horscombat.json
+@@ -0,0 +1 @@
++{"Immediat":null,"30 secondes":0.1,"1 minute":0.2,"2 minutes":0.3,"4 minutes":0.4,"6 minutes":0.6,"8 minutes":0.8,"10 minutes":1,"15 minutes":1.3,"20 minutes":1.6,"30 minutes":1.9,"45 minutes":2.2,"1 heure":2.6,"1 heure 30":3,"2 heures":3.5,"3 heures":4,"4 heures":5,"5 heures":6.5,"6 heures":8.5,"8 heures":11.5,"10 heures":15}
+diff --git a/api/scripts/data_magie/generic_controle_action_runique_enchant.json b/api/scripts/data_magie/generic_controle_action_runique_enchant.json
+new file mode 100644
+index 0000000..1842ccf
+--- /dev/null
++++ b/api/scripts/data_magie/generic_controle_action_runique_enchant.json
+@@ -0,0 +1 @@
++{"Immediat":null,"10 temps":0.2,"15 temps":0.4,"20 temps":0.6,"30 temps":0.8,"40 temps":1,"50 temps":1.5,"60 temps":2,"90 temps":3.5,"120 temps":6}
+diff --git a/api/scripts/data_magie/generic_de_effet.json b/api/scripts/data_magie/generic_de_effet.json
+new file mode 100644
+index 0000000..6614a92
+--- /dev/null
++++ b/api/scripts/data_magie/generic_de_effet.json
+@@ -0,0 +1 @@
++{"D2":2,"D3":2.5,"D4":3,"D6":6,"D8":10,"D10":15,"D12":20,"D14":25,"D16":30,"D18":35,"D20":40}
+diff --git a/api/scripts/data_magie/generic_duree.json b/api/scripts/data_magie/generic_duree.json
+new file mode 100644
+index 0000000..ad32d58
+--- /dev/null
++++ b/api/scripts/data_magie/generic_duree.json
+@@ -0,0 +1 @@
++{"1 temps":0,"5 temps":0.8,"10 temps":1,"15 temps":1.2,"20 temps":1.5,"25 temps":1.8,"1 tour":2,"2 tours":3,"3 tours":4,"4 tours":6,"5 tours":8,"6 tours":12,"7 tours":16,"8 tours":20,"9 tours":26,"10 tours":32}
+diff --git a/api/scripts/data_magie/generic_duree_conservation_alchimie.json b/api/scripts/data_magie/generic_duree_conservation_alchimie.json
+new file mode 100644
+index 0000000..56a80d1
+--- /dev/null
++++ b/api/scripts/data_magie/generic_duree_conservation_alchimie.json
+@@ -0,0 +1 @@
++{"2 heures":1,"6 heures":2.5,"12 heures":5,"24 heures":7.5,"2 jours":10,"4 jours":15,"8 jours":25,"16 jours":40,"32 jours":60,"64 jours":85,"128 jours":115,"266 jours":150}
+diff --git a/api/scripts/data_magie/generic_duree_hc.json b/api/scripts/data_magie/generic_duree_hc.json
+new file mode 100644
+index 0000000..ff5325e
+--- /dev/null
++++ b/api/scripts/data_magie/generic_duree_hc.json
+@@ -0,0 +1 @@
++{"Immediat":null,"10 secondes":0.5,"20 secondes":0.7,"30 secondes":0.8,"45 secondes":0.9,"1 minute":1,"2 minutes":1.2,"4 minutes":1.4,"6 minutes":1.6,"8 minutes":1.8,"10 minutes":2,"15 minutes":2.5,"20 minutes":3,"25 minutes":3.5,"30 minutes":4,"1 heure":5,"2 heures":6,"3 heures":8,"4 heures":10,"5 heures":12}
+diff --git a/api/scripts/data_magie/generic_entrave_carac_mentale.json b/api/scripts/data_magie/generic_entrave_carac_mentale.json
+new file mode 100644
+index 0000000..f5c550f
+--- /dev/null
++++ b/api/scripts/data_magie/generic_entrave_carac_mentale.json
+@@ -0,0 +1 @@
++{"+20%":1,"+10%":1.5,"+5%":2,"0%":3,"-5%":4,"-10%":6,"-20%":8,"-25%":9,"-30%":12,"-40%":16,"-50%":20,"-60%":25,"-70%":30,"-80%":36,"-90%":42,"-100%":49,"Impossible":60}
+diff --git a/api/scripts/data_magie/generic_entrave_carac_physique.json b/api/scripts/data_magie/generic_entrave_carac_physique.json
+new file mode 100644
+index 0000000..2180ad3
+--- /dev/null
++++ b/api/scripts/data_magie/generic_entrave_carac_physique.json
+@@ -0,0 +1 @@
++{"+20%":0.3,"+10%":0.4,"+5%":0.6,"0%":0.8,"-5%":1,"-10%":1.3,"-20%":1.6,"-25%":1.9,"-30%":2.2,"-40%":2.6,"-50%":3,"-60%":3.5,"-70%":4,"-80%":5,"-90%":6.5}
+diff --git a/api/scripts/data_magie/generic_entrave_partie_corps.json b/api/scripts/data_magie/generic_entrave_partie_corps.json
+new file mode 100644
+index 0000000..8633447
+--- /dev/null
++++ b/api/scripts/data_magie/generic_entrave_partie_corps.json
+@@ -0,0 +1 @@
++{"Tete":1.5,"Bras (individuel)":1,"Haut du corps (sans tete)":1.5,"Jambe (individuelle)":1,"Bas du corps":1.5}
+diff --git a/api/scripts/data_magie/generic_entrave_resistance_physique.json b/api/scripts/data_magie/generic_entrave_resistance_physique.json
+new file mode 100644
+index 0000000..9e21e77
+--- /dev/null
++++ b/api/scripts/data_magie/generic_entrave_resistance_physique.json
+@@ -0,0 +1 @@
++{"1":0.25,"2":0.5,"4":1,"7":1.5,"10":2.5,"15":3.5,"20":5,"30":6.5,"40":8.5,"50":10.5,"60":13,"70":15.5,"80":18.5,"90":21.5,"100":25.5}
+diff --git a/api/scripts/data_magie/generic_forme_zone.json b/api/scripts/data_magie/generic_forme_zone.json
+new file mode 100644
+index 0000000..d74a014
+--- /dev/null
++++ b/api/scripts/data_magie/generic_forme_zone.json
+@@ -0,0 +1 @@
++{"Zone 1":1,"Zone 2":1.2,"Zone 3":2,"Zone 4":1.5,"Zone 5":1.4,"Zone 6":1.3}
+diff --git a/api/scripts/data_magie/generic_frequence_application.json b/api/scripts/data_magie/generic_frequence_application.json
+new file mode 100644
+index 0000000..9be59ea
+--- /dev/null
++++ b/api/scripts/data_magie/generic_frequence_application.json
+@@ -0,0 +1 @@
++{"5 temps":8,"10 temps":5,"15 temps":3.5,"20 temps":2,"25 temps":1.5,"1 tour":1}
+diff --git a/api/scripts/data_magie/generic_long_sort.json b/api/scripts/data_magie/generic_long_sort.json
+new file mode 100644
+index 0000000..529d66b
+--- /dev/null
++++ b/api/scripts/data_magie/generic_long_sort.json
+@@ -0,0 +1 @@
++{"Immediat":null,"1 minute":18,"2 minutes":16,"4 minutes":14,"6 minutes":12,"8 minutes":10,"10 minutes":9,"15 minutes":8,"20 minutes":7,"25 minutes":6,"30 minutes":5,"40 minutes":4,"50 minutes":3,"1 heure":2,"1 heure 30 minutes":1.8,"2 heures":1.6,"3 heures":1.4,"4 heures":1.2,"5 heures":1,"6 heures":0.9,"8 heures":0.8,"10 heures":0.7,"12 heures":0.6}
+diff --git a/api/scripts/data_magie/generic_nb.json b/api/scripts/data_magie/generic_nb.json
+new file mode 100644
+index 0000000..9d92bd1
+--- /dev/null
++++ b/api/scripts/data_magie/generic_nb.json
+@@ -0,0 +1 @@
++{"Zone (voir Tz)":0,"Une personne":1,"Deux personnes":1.3,"Trois personnes":1.8,"Quatre personnes":2.5,"Cinq personnes":3,"Six personnes":3.5,"Sept personnes":4,"Huit personnes":4.5,"Neuf personnes":5,"Dix personnes":6}
+diff --git a/api/scripts/data_magie/generic_nombre_application.json b/api/scripts/data_magie/generic_nombre_application.json
+new file mode 100644
+index 0000000..e4d8be0
+--- /dev/null
++++ b/api/scripts/data_magie/generic_nombre_application.json
+@@ -0,0 +1 @@
++{"1":0,"2":2.5,"3":4,"4":6,"5":8.5,"6":11.5,"7":15,"8":19,"9":23.5,"10":28.5}
+diff --git a/api/scripts/data_magie/generic_paliers_effet_13.json b/api/scripts/data_magie/generic_paliers_effet_13.json
+new file mode 100644
+index 0000000..e197aad
+--- /dev/null
++++ b/api/scripts/data_magie/generic_paliers_effet_13.json
+@@ -0,0 +1 @@
++{"Nul":2,"Mediocre":3.5,"Normal":5,"Bon":7.5,"Tres bon":10,"Superieur":12.5,"Excellent":16,"Majeur":20,"Sensationnel":30,"Mythique":45,"Legendaire":65,"Dementiel":90,"Divin":120}
+diff --git a/api/scripts/data_magie/generic_piege_runique_combat.json b/api/scripts/data_magie/generic_piege_runique_combat.json
+new file mode 100644
+index 0000000..66d728d
+--- /dev/null
++++ b/api/scripts/data_magie/generic_piege_runique_combat.json
+@@ -0,0 +1 @@
++{"1 temps":0.1,"5 temps":0.2,"10 temps":0.3,"15 temps":0.5,"30 temps":1,"60 temps":2,"90 temps":4,"120 temps":8}
+diff --git a/api/scripts/data_magie/generic_piege_runique_horscombat.json b/api/scripts/data_magie/generic_piege_runique_horscombat.json
+new file mode 100644
+index 0000000..e04bf64
+--- /dev/null
++++ b/api/scripts/data_magie/generic_piege_runique_horscombat.json
+@@ -0,0 +1 @@
++{"1 seconde":0.1,"30 secondes":0.2,"2 minutes":0.3,"5 minutes":0.5,"10 minutes":1,"15 minutes":2,"20 minutes":4,"30 minutes":8}
+diff --git a/api/scripts/data_magie/generic_portee.json b/api/scripts/data_magie/generic_portee.json
+new file mode 100644
+index 0000000..376a07b
+--- /dev/null
++++ b/api/scripts/data_magie/generic_portee.json
+@@ -0,0 +1 @@
++{"Touche":0.5,"50 centimetres":0.6,"1 metre":0.7,"2 metres":0.8,"3 metres":0.9,"5 metres":1,"10 metres":1.2,"15 metres":1.5,"20 metres":2,"30 metres":3,"40 metres":4.5,"50 metres":6}
+diff --git a/api/scripts/data_magie/generic_portee_hc.json b/api/scripts/data_magie/generic_portee_hc.json
+new file mode 100644
+index 0000000..b7c2f41
+--- /dev/null
++++ b/api/scripts/data_magie/generic_portee_hc.json
+@@ -0,0 +1 @@
++{"Touche":0.3,"50 centimetres":0.4,"1 metre":0.5,"2 metres":0.6,"3 metres":0.7,"5 metres":0.8,"10 metres":0.9,"15 metres":1,"20 metres":1.2,"30 metres":1.5,"40 metres":2,"50 metres":3}
+diff --git a/api/scripts/data_magie/generic_reinit_immediate.json b/api/scripts/data_magie/generic_reinit_immediate.json
+new file mode 100644
+index 0000000..fab948a
+--- /dev/null
++++ b/api/scripts/data_magie/generic_reinit_immediate.json
+@@ -0,0 +1 @@
++{"Immediat":null,"1 temp":5.5,"2 temps":4,"3 temps":3.4,"4 temps":2.9,"5 temps":2.6,"6 temps":2.3,"8 temps":2,"10 temps":1.8,"12 temps":1.6,"14 temps":1.4,"16 temps":1.2,"18 temps":1,"20 temps":0.9,"25 temps":0.8,"30 temps":0.7,"40 temps":0.6,"50 temps":0.5,"60 temps":0.4,"90 temps":0.3,"120 temps":0.2}
+diff --git a/api/scripts/data_magie/generic_resistance_degats.json b/api/scripts/data_magie/generic_resistance_degats.json
+new file mode 100644
+index 0000000..392b1db
+--- /dev/null
++++ b/api/scripts/data_magie/generic_resistance_degats.json
+@@ -0,0 +1 @@
++{"Resistance 1":3,"Resistance 2":6,"Resistance 3":10,"Resistance 4":15,"Resistance 5":21,"Resistance 6":28,"Resistance 7":36,"Resistance 8":45,"Resistance 9":55,"Resistance 10":66}
+diff --git a/api/scripts/data_magie/generic_resistance_magique_Rm.json b/api/scripts/data_magie/generic_resistance_magique_Rm.json
+new file mode 100644
+index 0000000..f965f00
+--- /dev/null
++++ b/api/scripts/data_magie/generic_resistance_magique_Rm.json
+@@ -0,0 +1 @@
++{"Resistance 1":2,"Resistance 2":3,"Resistance 3":5,"Resistance 4":8,"Resistance 5":12,"Resistance 6":17,"Resistance 7":23,"Resistance 8":30,"Resistance 9":38,"Resistance 10":47}
+diff --git a/api/scripts/data_magie/generic_solidification_permanente.json b/api/scripts/data_magie/generic_solidification_permanente.json
+new file mode 100644
+index 0000000..de72ad7
+--- /dev/null
++++ b/api/scripts/data_magie/generic_solidification_permanente.json
+@@ -0,0 +1 @@
++{"Nul":5,"Mediocre":7.5,"Normal":10,"Bon":12.5,"Tres bon":16,"Superieur":20,"Excellent":30,"Majeur":45,"Sensationnel":65,"Mythique":90,"Legendaire":120,"Dementiel":160,"Divin":220}
+diff --git a/api/scripts/data_magie/generic_tz.json b/api/scripts/data_magie/generic_tz.json
+new file mode 100644
+index 0000000..0d11ba9
+--- /dev/null
++++ b/api/scripts/data_magie/generic_tz.json
+@@ -0,0 +1 @@
++{"Lié aux personnes (Nb)":0,"Deux metres":1,"Trois metres":1.1,"Quatre metres":1.2,"Cinq metres":1.3,"Six metres":1.5,"Sept metres":1.7,"Huit metres":2,"Neuf metres":2.3,"Dix metres":2.7,"Onze metres":3.1,"Douze metres":3.5,"Treize metres":4,"Quatorze metres":4.5,"Quinze metres":5,"Seize metres":5.5,"Dix-sept metres":6,"Dix-huit metres":7,"Dix-neuf metres":8,"Vingt metres":9}
+diff --git a/api/scripts/data_magie/niveau_aspect_type_prix.json b/api/scripts/data_magie/niveau_aspect_type_prix.json
+new file mode 100644
+index 0000000..a29667c
+--- /dev/null
++++ b/api/scripts/data_magie/niveau_aspect_type_prix.json
+@@ -0,0 +1 @@
++{"1":0.5,"2":1,"3":1.75,"4":2.75,"5":4,"6":5.5,"7":7.25,"8":9.25,"9":11.75,"10":15}
+diff --git a/api/scripts/import_constantes_magie.py b/api/scripts/import_constantes_magie.py
+new file mode 100644
+index 0000000..18bf1b7
+--- /dev/null
++++ b/api/scripts/import_constantes_magie.py
+@@ -0,0 +1,276 @@
++"""
++Import des constantes de magie d'Elenior vers Postgres (Railway).
++
++DECISION DU 09/08/2026 : source de verite = LIVRE de regles, pas le tableur
++d'Elise (voir app/utils.py pour le detail de cette decision). Les fichiers
++JSON lus ici ont ete transcrits et valides visuellement depuis le livre
++"Les Compagnons de l'Infortune 2026" (chapitre IV), PAS extraits du tableur.
++
++Usage :
++    python scripts/import_constantes_magie.py --database-url postgresql://...
++    python scripts/import_constantes_magie.py --dry-run   # verification locale sans ecrire en base
++
++Le script est idempotent : il vide chaque table de reference avant de la
++repeupler (DELETE puis INSERT), pour pouvoir etre relance sans dupliquer les
++lignes si une correction de valeur doit etre appliquee plus tard suite a un
++retour d'Elise.
++
++Ce script ne touche a aucune donnee de jeu (table `sort`) - uniquement aux
++tables de reference (magie_c1_aspect_ecole, magie_generic_*, etc.).
++"""
++
++import argparse
++import json
++import sys
++from pathlib import Path
++
++from sqlmodel import SQLModel, Session, create_engine, delete
++
++# Ce script est pensé pour vivre dans api/scripts/, à côté de son dossier
++# data_magie/. Il est lancé en autonome (pas via uvicorn), donc le package
++# "app" (qui vit dans api/app/) doit être ajouté au path explicitement.
++sys.path.insert(0, str(Path(__file__).parent.parent))
++
++from app.models_magie import (
++    MagieC1, MagieC2, MagieC3, MagieC4C5, MagieC6C7,
++    MagieEntraveResistancePhysique, MagieEntraveCarac, MagieEntravePartieCorps,
++    MagieFrequenceApplication, MagieBonusCaracteristique,
++    # Les 24 tables generiques (une classe par fichier JSON, meme nommage)
++    MagieGenericNb, MagieGenericTz, MagieGenericFormeZone,
++    MagieGenericDureeCombat, MagieGenericDureeHorsCombat,
++    MagieGenericPorteeCombat, MagieGenericPorteeHorsCombat,
++    MagieGenericControleActionCombat, MagieGenericControleActionHorsCombat,
++    MagieGenericControleActionRuniqueEnchant,
++    MagieGenericPiegeRuniqueCombat, MagieGenericPiegeRuniqueHorsCombat,
++    MagieGenericDeEffet, MagieGenericBaseEffet, MagieGenericPaliersEffet13,
++    MagieGenericResistanceDegats, MagieGenericResistanceMagique,
++    MagieGenericReinitImmediate, MagieGenericSolidificationPermanente,
++    MagieGenericDureeConservationAlchimie, MagieGenericLongSort,
++    MagieGenericActionPhysiqueEx, MagieGenericArretCast,
++    MagieGenericNiveauAspectTypePrix,
++)
++
++DATA_DIR = Path(__file__).parent / "data_magie"
++
++
++def charger_json(nom_fichier: str) -> dict:
++    """Charge un fichier JSON de constantes, avec message d'erreur clair
++    si le fichier attendu est absent (plutot qu'une KeyError opaque plus
++    loin dans le script)."""
++    chemin = DATA_DIR / nom_fichier
++    if not chemin.exists():
++        raise FileNotFoundError(
++            f"Fichier de constantes introuvable : {chemin}\n"
++            f"Verifier que le zip constantes-magie-json.zip a bien ete "
++            f"decompresse dans {DATA_DIR}"
++        )
++    with open(chemin, encoding="utf-8") as f:
++        return json.load(f)
++
++
++def importer_c1(session: Session):
++    """C1 : Aspect x Ecole (108 valeurs attendues, 12 aspects x 9 ecoles)."""
++    data = charger_json("c1_aspect_ecole.json")
++    session.exec(delete(MagieC1))
++    n = 0
++    for aspect, ecoles in data.items():
++        for ecole, valeur in ecoles.items():
++            session.add(MagieC1(aspect=aspect, ecole=ecole, valeur=valeur))
++            n += 1
++    assert n == 108, f"C1 : {n} valeurs importees, 108 attendues - verifier la source"
++    print(f"  C1 : {n} valeurs importees")
++
++
++def importer_c2(session: Session):
++    """C2 : Type x Aspect (204 valeurs attendues, 17 types x 12 aspects)."""
++    data = charger_json("c2_type_aspect.json")
++    session.exec(delete(MagieC2))
++    n = 0
++    for type_magie, aspects in data.items():
++        for aspect, valeur in aspects.items():
++            session.add(MagieC2(type_magie=type_magie, aspect=aspect, valeur=valeur))
++            n += 1
++    assert n == 204, f"C2 : {n} valeurs importees, 204 attendues - verifier la source"
++    print(f"  C2 : {n} valeurs importees")
++
++
++def importer_c3(session: Session):
++    """C3 : Type x Ecole (153 valeurs attendues, 17 types x 9 ecoles)."""
++    data = charger_json("c3_type_ecole.json")
++    session.exec(delete(MagieC3))
++    n = 0
++    for type_magie, ecoles in data.items():
++        for ecole, valeur in ecoles.items():
++            session.add(MagieC3(type_magie=type_magie, ecole=ecole, valeur=valeur))
++            n += 1
++    assert n == 153, f"C3 : {n} valeurs importees, 153 attendues - verifier la source"
++    print(f"  C3 : {n} valeurs importees")
++
++
++def importer_c4_c5(session: Session):
++    """C4/C5 : par Type (34 valeurs attendues, 17 types x 2)."""
++    data = charger_json("c4_c5_type.json")
++    session.exec(delete(MagieC4C5))
++    n = 0
++    for type_magie, valeurs in data.items():
++        session.add(MagieC4C5(
++            type_magie=type_magie,
++            c4_cout=valeurs["C4"],
++            c5_cast=valeurs["C5"],
++        ))
++        n += 1
++    assert n == 17, f"C4/C5 : {n} types importes, 17 attendus - verifier la source"
++    print(f"  C4/C5 : {n} types importes")
++
++
++def importer_c6_c7(session: Session):
++    """C6/C7 : par Aspect (24 valeurs attendues, 12 aspects x 2)."""
++    data = charger_json("c6_c7_aspect.json")
++    session.exec(delete(MagieC6C7))
++    n = 0
++    for aspect, valeurs in data.items():
++        session.add(MagieC6C7(
++            aspect=aspect,
++            c6_cout=valeurs["C6"],
++            c7_cast=valeurs["C7"],
++        ))
++        n += 1
++    assert n == 12, f"C6/C7 : {n} aspects importes, 12 attendus - verifier la source"
++    print(f"  C6/C7 : {n} aspects importes")
++
++
++def importer_entrave(session: Session):
++    """4 tables d'entrave - forme un peu differente du pattern generique."""
++    data = charger_json("generic_entrave_resistance_physique.json")
++    session.exec(delete(MagieEntraveResistancePhysique))
++    for points_vie, valeur in data.items():
++        session.add(MagieEntraveResistancePhysique(points_vie=int(points_vie), valeur=valeur))
++    print(f"  Entrave resistance physique : {len(data)} valeurs")
++
++    session.exec(delete(MagieEntraveCarac))
++    n = 0
++    for type_entrave, fichier in [("physique", "generic_entrave_carac_physique.json"),
++                                    ("mentale", "generic_entrave_carac_mentale.json")]:
++        data = charger_json(fichier)
++        for pourcentage, valeur in data.items():
++            session.add(MagieEntraveCarac(type_entrave=type_entrave, pourcentage=pourcentage, valeur=valeur))
++            n += 1
++    print(f"  Entrave carac (physique+mentale) : {n} valeurs")
++
++    data = charger_json("generic_entrave_partie_corps.json")
++    session.exec(delete(MagieEntravePartieCorps))
++    for partie, valeur in data.items():
++        session.add(MagieEntravePartieCorps(partie=partie, valeur=valeur))
++    print(f"  Entrave partie du corps : {len(data)} valeurs")
++
++    session.exec(delete(MagieFrequenceApplication))
++    n = 0
++    for type_constante, fichier in [("nombre_application", "generic_nombre_application.json"),
++                                      ("frequence", "generic_frequence_application.json")]:
++        data = charger_json(fichier)
++        for palier, valeur in data.items():
++            session.add(MagieFrequenceApplication(type_constante=type_constante, palier=palier, valeur=valeur))
++            n += 1
++    print(f"  Frequence/Nombre application : {n} valeurs")
++
++
++def importer_bonus_caracteristique(session: Session):
++    data = charger_json("generic_bonus_caracteristique.json")
++    session.exec(delete(MagieBonusCaracteristique))
++    n = 0
++    for categorie, paliers in data.items():
++        for palier, valeur in paliers.items():
++            session.add(MagieBonusCaracteristique(categorie=categorie, palier=palier, valeur=valeur))
++            n += 1
++    print(f"  Bonus caracteristique : {n} valeurs")
++
++
++# Tables generiques : (nom du fichier JSON, classe SQLModel correspondante)
++# Meme liste que GENERIC_TABLE_NAMES dans models_magie.py, associee a sa classe.
++TABLES_GENERIQUES = [
++    ("generic_nb.json", MagieGenericNb),
++    ("generic_tz.json", MagieGenericTz),
++    ("generic_forme_zone.json", MagieGenericFormeZone),
++    ("generic_duree.json", MagieGenericDureeCombat),
++    ("generic_duree_hc.json", MagieGenericDureeHorsCombat),
++    ("generic_portee.json", MagieGenericPorteeCombat),
++    ("generic_portee_hc.json", MagieGenericPorteeHorsCombat),
++    ("generic_controle_action_ex_combat.json", MagieGenericControleActionCombat),
++    ("generic_controle_action_ex_horscombat.json", MagieGenericControleActionHorsCombat),
++    ("generic_controle_action_runique_enchant.json", MagieGenericControleActionRuniqueEnchant),
++    ("generic_piege_runique_combat.json", MagieGenericPiegeRuniqueCombat),
++    ("generic_piege_runique_horscombat.json", MagieGenericPiegeRuniqueHorsCombat),
++    ("generic_de_effet.json", MagieGenericDeEffet),
++    ("generic_base_effet.json", MagieGenericBaseEffet),
++    ("generic_paliers_effet_13.json", MagieGenericPaliersEffet13),
++    ("generic_resistance_degats.json", MagieGenericResistanceDegats),
++    ("generic_resistance_magique_Rm.json", MagieGenericResistanceMagique),
++    ("generic_reinit_immediate.json", MagieGenericReinitImmediate),
++    ("generic_solidification_permanente.json", MagieGenericSolidificationPermanente),
++    ("generic_duree_conservation_alchimie.json", MagieGenericDureeConservationAlchimie),
++    ("generic_long_sort.json", MagieGenericLongSort),
++    ("generic_action_physique_ex.json", MagieGenericActionPhysiqueEx),
++    ("generic_arret_cast.json", MagieGenericArretCast),
++    ("niveau_aspect_type_prix.json", MagieGenericNiveauAspectTypePrix),
++]
++
++
++def importer_tables_generiques(session: Session):
++    for nom_fichier, modele in TABLES_GENERIQUES:
++        data = charger_json(nom_fichier)
++        session.exec(delete(modele))
++        n = 0
++        for palier, valeur in data.items():
++            session.add(modele(palier=palier, valeur=valeur))
++            n += 1
++        print(f"  {modele.__tablename__} : {n} valeurs")
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--database-url", help="URL Postgres complete (Railway)")
++    parser.add_argument("--dry-run", action="store_true",
++                         help="Charge et valide les JSON sans se connecter a une base "
++                              "(verifie les comptes attendus, utile avant un import reel)")
++    args = parser.parse_args()
++
++    if args.dry_run:
++        print("=== DRY RUN - verification des fichiers source uniquement ===")
++        for nom in ["c1_aspect_ecole.json", "c2_type_aspect.json", "c3_type_ecole.json",
++                    "c4_c5_type.json", "c6_c7_aspect.json"] + [f for f, _ in TABLES_GENERIQUES]:
++            data = charger_json(nom)
++            print(f"  OK - {nom} lisible ({len(data)} entrees de premier niveau)")
++        print("Dry run termine sans erreur.")
++        return
++
++    if not args.database_url:
++        print("Erreur : --database-url requis (ou utiliser --dry-run)", file=sys.stderr)
++        sys.exit(1)
++
++    engine = create_engine(args.database_url)
++    # Pas de SQLModel.metadata.create_all() ici volontairement : ce script
++    # n'importe que les modèles de magie, donc sa propre métadonnée ne
++    # connaît pas Campaign/Character (définis dans app/models.py) et un
++    # create_all() local échouerait à résoudre la clé étrangère de Sort
++    # vers character.id (trouvé en testant l'installation le 09/08/2026).
++    # Les tables sont déjà créées par le démarrage normal de l'API
++    # (lifespan -> create_db_and_tables() dans app/main.py, qui importe
++    # tous les modèles réels) - lancer ce script APRÈS avoir démarré l'API
++    # au moins une fois.
++
++    with Session(engine) as session:
++        print("Import des constantes de magie (source : livre de regles)...")
++        importer_c1(session)
++        importer_c2(session)
++        importer_c3(session)
++        importer_c4_c5(session)
++        importer_c6_c7(session)
++        importer_entrave(session)
++        importer_bonus_caracteristique(session)
++        importer_tables_generiques(session)
++        session.commit()
++        print("Import termine avec succes.")
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/api/test_integration.db b/api/test_integration.db
+new file mode 100644
+index 0000000000000000000000000000000000000000..f2bedb9265b4f830b05c63435df576fa5fcf3a39
+GIT binary patch
+literal 225280
+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
+
+literal 0
+HcmV?d00001
+
+diff --git a/app b/app
+deleted file mode 100644
+index 8b13789..0000000
+--- a/app
++++ /dev/null
+@@ -1 +0,0 @@
+-
+diff --git a/pages/elenior/magie/magie-index.html b/pages/elenior/magie/magie-index.html
+new file mode 100644
+index 0000000..2d9cfbc
+--- /dev/null
++++ b/pages/elenior/magie/magie-index.html
+@@ -0,0 +1,538 @@
++<!DOCTYPE html>
++<html lang="fr">
++<head>
++<meta charset="UTF-8">
++<meta name="viewport" content="width=device-width, initial-scale=1.0">
++<title>Grimoire des Sorts — Elénior</title>
++<link rel="stylesheet" href="../tokens.css">
++<style>
++/* Variables de couleurs/polices Elénior : voir pages/elenior/tokens.css
++   (chargé via <link> ci-dessus). Styles ci-dessous repris à l'identique du
++   Cadran des Trente Temps et de la Fiche de personnage pour rester dans la
++   même famille visuelle ("grimoire alchimique") plutôt que d'inventer un
++   nouveau langage graphique pour ce 3e outil. */
++
++*{box-sizing:border-box;}
++html,body{margin:0;padding:0;background:var(--ink);color:var(--parchment);}
++body{
++  font-family:'Spectral',serif;
++  background:
++    radial-gradient(1200px 600px at 15% -10%, rgba(192,132,66,0.08), transparent 60%),
++    radial-gradient(1000px 500px at 110% 10%, rgba(95,148,132,0.08), transparent 60%),
++    var(--ink);
++  min-height:100vh;
++  padding:28px 20px 60px;
++}
++h1,h2,h3{font-family:'Cinzel',serif; letter-spacing:0.03em; margin:0;}
++.mono{font-family:'IBM Plex Mono',monospace;}
++.wrap{max-width:1180px;margin:0 auto;}
++
++header.top{
++  display:flex; align-items:baseline; justify-content:space-between;
++  border-bottom:1px solid var(--line); padding-bottom:16px; margin-bottom:22px;
++  flex-wrap:wrap; gap:10px;
++}
++header.top h1{font-size:26px; color:var(--parchment); font-weight:700;}
++header.top h1 span{color:var(--copper);}
++.subtitle{font-size:12.5px; color:var(--parchment-dim); font-style:italic; margin-top:4px;}
++
++.grid{display:grid; grid-template-columns: 1fr 1fr; gap:22px;}
++@media (max-width:920px){ .grid{grid-template-columns:1fr;} }
++
++.panel{
++  background:linear-gradient(180deg, var(--ink-2), var(--ink-3));
++  border:1px solid var(--line);
++  border-radius:6px;
++  padding:16px 16px 18px;
++}
++.panel + .panel{margin-top:18px;}
++.panel h2{font-size:15px; color:var(--copper); margin-bottom:12px; text-transform:uppercase; letter-spacing:0.06em;}
++.panel h2 small{color:var(--parchment-dim); font-family:'Spectral'; text-transform:none; letter-spacing:0; font-style:italic; font-size:11.5px;}
++
++button{
++  font-family:'Cinzel',serif; font-size:11.5px; letter-spacing:0.05em; text-transform:uppercase;
++  background:transparent; color:var(--parchment); border:1px solid var(--copper-dim);
++  padding:9px 14px; border-radius:2px; cursor:pointer; transition:all .15s ease;
++}
++button:hover{background:rgba(192,132,66,0.12); border-color:var(--copper);}
++button.primary{background:var(--copper); color:var(--ink); border-color:var(--copper); font-weight:700;}
++button.primary:hover{background:#D69856;}
++button.ghost{border-color:var(--line); color:var(--parchment-dim);}
++button.danger{border-color:var(--blood); color:var(--blood);}
++button.danger:hover{background:rgba(168,64,75,0.15);}
++button:disabled{opacity:0.35; cursor:not-allowed;}
++button:focus-visible, input:focus-visible, select:focus-visible{outline:2px solid var(--gold); outline-offset:1px;}
++.btnrow{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;}
++
++label{display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--parchment-dim); margin-bottom:4px;}
++input,select,textarea{
++  width:100%; background:var(--ink); border:1px solid var(--line); color:var(--parchment);
++  padding:7px 8px; border-radius:2px; font-family:'Spectral'; font-size:13.5px;
++}
++textarea{font-family:'Spectral'; min-height:60px; resize:vertical;}
++.field{margin-bottom:10px;}
++.field-row{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
++.field-row3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;}
++.hint{font-size:11px; color:var(--parchment-dim); font-style:italic; margin-top:3px; line-height:1.4;}
++
++fieldset{border:1px dashed var(--line); border-radius:4px; padding:10px 10px 4px; margin:0 0 14px;}
++fieldset legend{font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--copper); padding:0 6px;}
++
++/* ---------- Résultat du calcul ---------- */
++.resultat{border:1px solid var(--copper-dim); border-radius:5px; padding:16px 18px; margin-top:14px; background:rgba(192,132,66,0.06);}
++.resultat.vide{border-style:dashed; border-color:var(--line); background:transparent; color:var(--parchment-dim); font-style:italic; text-align:center;}
++.resultat-row{display:flex; justify-content:space-between; align-items:baseline; padding:6px 0; border-bottom:1px dashed var(--line);}
++.resultat-row:last-child{border-bottom:none;}
++.resultat-row .val{font-family:'IBM Plex Mono'; font-size:20px; color:var(--gold);}
++.constantes-detail{margin-top:10px; font-size:11px; color:var(--parchment-dim); font-family:'IBM Plex Mono'; line-height:1.7;}
++.erreur{color:var(--blood); font-size:12.5px; margin-top:8px;}
++
++/* ---------- Bibliothèque de sorts ---------- */
++.sort-card{
++  border:1px solid var(--line); border-radius:4px; padding:12px 14px; margin-bottom:10px;
++  background:rgba(0,0,0,0.15);
++}
++.sort-top{display:flex; justify-content:space-between; align-items:baseline; gap:10px; flex-wrap:wrap;}
++.sort-nom{font-family:'Cinzel'; font-size:14.5px; color:var(--parchment);}
++.sort-tag{font-size:9.5px; text-transform:uppercase; letter-spacing:0.05em; padding:2px 6px; border-radius:2px; border:1px solid var(--verdigris); color:var(--verdigris);}
++.sort-meta{font-size:11.5px; color:var(--parchment-dim); margin-top:4px;}
++.sort-chiffres{display:flex; gap:16px; margin-top:8px; font-family:'IBM Plex Mono'; font-size:13px;}
++.sort-chiffres b{color:var(--gold);}
++.sort-notes{font-size:12px; color:var(--parchment-dim); margin-top:6px; font-style:italic;}
++.sort-actions{margin-top:8px; display:flex; gap:6px;}
++.lib-vide{color:var(--parchment-dim); font-style:italic; text-align:center; padding:20px 0;}
++
++select[multiple]{min-height:90px;}
++</style>
++</head>
++<body>
++<div class="wrap">
++
++  <header class="top">
++    <div>
++      <h1>Grimoire des <span>Sorts</span></h1>
++      <div class="subtitle">Calcul du Coût et du Cast — équations du livre des règles (Chapitre IV, La Magie)</div>
++    </div>
++    <div class="field" style="min-width:220px;margin-bottom:0;">
++      <label>Personnage</label>
++      <select id="sel-personnage"></select>
++    </div>
++  </header>
++
++  <div class="grid">
++
++    <!-- ============ COLONNE GAUCHE : CALCULATEUR ============ -->
++    <div>
++      <div class="panel">
++        <h2>Composer un sort <small>les constantes C1-C7 sont résolues côté serveur</small></h2>
++
++        <div class="field">
++          <label>Nom du sort</label>
++          <input type="text" id="f-nom" placeholder="Peau d'emprunt">
++        </div>
++
++        <div class="field">
++          <label>Type de magie</label>
++          <select id="f-type"></select>
++        </div>
++
++        <fieldset>
++          <legend>Aspects (1 à 3)</legend>
++          <div class="field-row3">
++            <div><label>Aspect 1</label><select id="f-aspect1"></select></div>
++            <div><label>Aspect 2</label><select id="f-aspect2"><option value="">—</option></select></div>
++            <div><label>Aspect 3</label><select id="f-aspect3"><option value="">—</option></select></div>
++          </div>
++          <div class="hint">Un sort à plusieurs Aspects prend la valeur C1/C2 la plus haute parmi eux (règle du livre, p.145).</div>
++        </fieldset>
++
++        <fieldset>
++          <legend>Écoles (1 à 3)</legend>
++          <div class="field-row3">
++            <div><label>École 1</label><select id="f-ecole1"></select></div>
++            <div><label>École 2</label><select id="f-ecole2"><option value="">—</option></select></div>
++            <div><label>École 3</label><select id="f-ecole3"><option value="">—</option></select></div>
++          </div>
++        </fieldset>
++
++        <fieldset>
++          <legend>Puissance du sort</legend>
++          <div class="field-row">
++            <div><label>Pi — puissance immédiate</label><input type="number" id="f-pi" value="0" step="0.5"></div>
++            <div><label>Pd — puissance dans la durée</label><input type="number" id="f-pd" value="0" step="0.5"></div>
++          </div>
++          <div class="field-row">
++            <div><label>En — entrave</label><input type="number" id="f-en" value="0" step="0.5"></div>
++            <div><label>Ex — contrôle d'action</label><input type="number" id="f-ex" value="0" step="0.5"></div>
++          </div>
++        </fieldset>
++
++        <fieldset>
++          <legend>Ciblage</legend>
++          <div class="field-row3">
++            <div><label>Nb — cibles</label><input type="number" id="f-nb" value="1" step="0.5"></div>
++            <div><label>Tz — taille de zone</label><input type="number" id="f-tz" value="0" step="0.1"></div>
++            <div><label>Z — forme de zone</label><input type="number" id="f-z" value="1" step="0.1"></div>
++          </div>
++          <div class="field">
++            <label>Po — portée (ignorée si Long-sort)</label>
++            <input type="number" id="f-po" value="0" step="0.1">
++          </div>
++        </fieldset>
++
++        <fieldset>
++          <legend>Personnage</legend>
++          <div class="field-row">
++            <div><label>Cm — carac. magique ÷ 10</label><input type="number" id="f-cm" value="0" step="0.1"></div>
++            <div><label>Niveau de Type</label><input type="number" id="f-niveau-type" value="0" step="0.25"></div>
++          </div>
++          <div class="field">
++            <label>Niveaux d'Aspect (un par Aspect choisi, séparés par des virgules)</label>
++            <input type="text" id="f-niveaux-aspect" value="0" placeholder="ex : 5.25 ou 5.25, 4">
++          </div>
++          <label style="display:flex;align-items:center;gap:6px;text-transform:none;font-size:12.5px;">
++            <input type="checkbox" id="f-long-sort" style="width:auto;">
++            Ce sort est un Long-sort (remplace le Cast — Alchimie notamment)
++          </label>
++        </fieldset>
++
++        <div class="btnrow">
++          <button class="primary" id="btn-calculer">Calculer</button>
++        </div>
++
++        <div id="zone-resultat" class="resultat vide">Renseigne un sort puis clique sur Calculer.</div>
++
++        <div class="btnrow">
++          <button id="btn-sauver" disabled>Ajouter à la bibliothèque</button>
++        </div>
++        <div class="hint">Le calcul doit réussir avant de pouvoir sauvegarder — le Coût/Cast enregistrés sont ceux du dernier calcul.</div>
++      </div>
++    </div>
++
++    <!-- ============ COLONNE DROITE : BIBLIOTHÈQUE ============ -->
++    <div>
++      <div class="panel">
++        <h2>Bibliothèque de la campagne <small>tous personnages confondus</small></h2>
++        <div id="zone-bibliotheque">
++          <div class="lib-vide">Chargement…</div>
++        </div>
++      </div>
++    </div>
++
++  </div>
++</div>
++
++<script>
++/* =========================================================================
++   CONFIG AMBRELAB — API commune
++   ========================================================================= */
++const API_BASE = 'https://api.ambrelab.com';
++const CAMPAIGN_ID = 1; // Elénior — même convention que le Cadran et la Fiche
++
++/* =========================================================================
++   DONNÉES DE RÈGLES — listes fixes pour peupler les menus déroulants.
++   Ce ne sont QUE des libellés d'interface : les vraies valeurs de calcul
++   (C1-C7) vivent en base et sont résolues côté API (/magie/calculer),
++   jamais recalculées ici. Source : livre "Les Compagnons de l'Infortune
++   2026", chapitre IV.
++   ========================================================================= */
++const TYPES_MAGIE = [
++  'Arcanique','Psychomantique','Technomantique','Spirituelle',
++  'Saltomancie','Moniale','Bestiale','Technogestuelle','Rituelle',
++  'Bardique','Logomancie','Précative',
++  'Alchimie','Plastique','Enchantement','Runique','Scriptorale',
++];
++const ASPECTS_MAGIE = [
++  'Acide','Air','Bois','Chair','Électricité','Feu/Chaleur',
++  'Glace/Froid','Eau','Lumière','Métal','Son','Terre',
++];
++const ECOLES_MAGIE = [
++  'Abjuration','Altération','Animation','Destruction','Divination',
++  'Guérison','Illusion','Invocation','Transmutation',
++];
++
++/* =========================================================================
++   APPELS API — mêmes helpers que sur les autres apps Elénior
++   ========================================================================= */
++async function api(path, opts = {}) {
++  const res = await fetch(`${API_BASE}${path}`, {
++    headers: { 'Content-Type': 'application/json' },
++    ...opts,
++  });
++  if (!res.ok) {
++    let detail = res.statusText;
++    try { const j = await res.json(); detail = j.detail || detail; } catch (e) { /* pas de corps JSON */ }
++    throw new Error(`${res.status} ${detail}`);
++  }
++  if (res.status === 204) return null;
++  return res.json();
++}
++const apiGet = (path) => api(path);
++const apiPost = (path, body) => api(path, { method: 'POST', body: JSON.stringify(body) });
++const apiDelete = (path) => api(path, { method: 'DELETE' });
++
++function el(tag, attrs = {}, ...enfants) {
++  const e = document.createElement(tag);
++  for (const k in attrs) {
++    if (attrs[k] === undefined || attrs[k] === null) continue;
++    if (k === 'class') e.className = attrs[k];
++    else if (k.startsWith('on')) e.addEventListener(k.slice(2), attrs[k]);
++    else e.setAttribute(k, attrs[k]);
++  }
++  enfants.forEach((c) => {
++    if (typeof c === 'string') e.appendChild(document.createTextNode(c));
++    else if (c) e.appendChild(c);
++  });
++  return e;
++}
++
++/* =========================================================================
++   ÉTAT
++   ========================================================================= */
++const etat = {
++  personnages: [],
++  personnageId: null,
++  dernierCalcul: null, // { requete, reponse } — nécessaire pour la sauvegarde
++};
++
++/* =========================================================================
++   INITIALISATION DES MENUS
++   ========================================================================= */
++function peuplerSelect(select, options, avecVide) {
++  if (avecVide) select.appendChild(el('option', { value: '' }, '—'));
++  options.forEach((o) => select.appendChild(el('option', { value: o }, o)));
++}
++peuplerSelect(document.getElementById('f-type'), TYPES_MAGIE, false);
++peuplerSelect(document.getElementById('f-aspect1'), ASPECTS_MAGIE, false);
++// aspect2/aspect3/ecole2/ecole3 ont déjà leur option vide "—" dans le HTML
++// (voir <select id="f-aspect2"><option value="">—</option></select>) : on
++// ajoute seulement les options de données ici, sans la retirer/reposer.
++peuplerSelect(document.getElementById('f-aspect2'), ASPECTS_MAGIE, false);
++peuplerSelect(document.getElementById('f-aspect3'), ASPECTS_MAGIE, false);
++peuplerSelect(document.getElementById('f-ecole1'), ECOLES_MAGIE, false);
++peuplerSelect(document.getElementById('f-ecole2'), ECOLES_MAGIE, false);
++peuplerSelect(document.getElementById('f-ecole3'), ECOLES_MAGIE, false);
++
++/* =========================================================================
++   CHARGEMENT DES PERSONNAGES DE LA CAMPAGNE
++   ========================================================================= */
++async function chargerPersonnages() {
++  const sel = document.getElementById('sel-personnage');
++  try {
++    etat.personnages = await apiGet(`/campaigns/${CAMPAIGN_ID}/characters`);
++  } catch (e) {
++    sel.innerHTML = '';
++    sel.appendChild(el('option', {}, 'Erreur de chargement'));
++    return;
++  }
++  sel.innerHTML = '';
++  if (etat.personnages.length === 0) {
++    sel.appendChild(el('option', {}, 'Aucun personnage dans cette campagne'));
++    return;
++  }
++  etat.personnages.forEach((p) => {
++    sel.appendChild(el('option', { value: p.id }, p.name || `Personnage #${p.id}`));
++  });
++  etat.personnageId = Number(sel.value);
++  sel.addEventListener('change', () => { etat.personnageId = Number(sel.value); });
++}
++
++/* =========================================================================
++   LECTURE DU FORMULAIRE
++   ========================================================================= */
++function lireAspectsChoisis() {
++  return ['f-aspect1', 'f-aspect2', 'f-aspect3']
++    .map((id) => document.getElementById(id).value)
++    .filter((v) => v !== '');
++}
++function lireEcolesChoisies() {
++  return ['f-ecole1', 'f-ecole2', 'f-ecole3']
++    .map((id) => document.getElementById(id).value)
++    .filter((v) => v !== '');
++}
++function lireNiveauxAspect() {
++  return document.getElementById('f-niveaux-aspect').value
++    .split(',')
++    .map((s) => parseFloat(s.trim()))
++    .filter((n) => !Number.isNaN(n));
++}
++function num(id) {
++  return parseFloat(document.getElementById(id).value) || 0;
++}
++
++function construireRequeteCalcul() {
++  const aspects = lireAspectsChoisis();
++  const ecoles = lireEcolesChoisies();
++  const niveauxAspect = lireNiveauxAspect();
++
++  if (aspects.length === 0) throw new Error('Choisis au moins un Aspect.');
++  if (ecoles.length === 0) throw new Error('Choisis au moins une École.');
++  if (niveauxAspect.length !== aspects.length) {
++    throw new Error(`Il faut exactement ${aspects.length} niveau(x) d'Aspect (séparés par des virgules), un par Aspect choisi.`);
++  }
++
++  return {
++    type_magie: document.getElementById('f-type').value,
++    aspects, ecoles,
++    pi: num('f-pi'), pd: num('f-pd'), en: num('f-en'), ex: num('f-ex'),
++    nb: num('f-nb'), tz: num('f-tz'), z: num('f-z'), po: num('f-po'),
++    cm: num('f-cm'),
++    niveau_aspects: niveauxAspect,
++    niveau_type: num('f-niveau-type'),
++    est_long_sort: document.getElementById('f-long-sort').checked,
++  };
++}
++
++/* =========================================================================
++   CALCUL
++   ========================================================================= */
++async function calculer() {
++  const zone = document.getElementById('zone-resultat');
++  const btnSauver = document.getElementById('btn-sauver');
++  btnSauver.disabled = true;
++  etat.dernierCalcul = null;
++
++  let requete;
++  try {
++    requete = construireRequeteCalcul();
++  } catch (e) {
++    zone.className = 'resultat';
++    zone.innerHTML = '';
++    zone.appendChild(el('div', { class: 'erreur' }, e.message));
++    return;
++  }
++
++  zone.className = 'resultat vide';
++  zone.textContent = 'Calcul en cours…';
++
++  try {
++    const reponse = await apiPost('/magie/calculer', requete);
++    etat.dernierCalcul = { requete, reponse };
++
++    zone.className = 'resultat';
++    zone.innerHTML = '';
++    zone.appendChild(el('div', { class: 'resultat-row' },
++      el('span', {}, 'Coût'),
++      el('span', { class: 'val' }, `${reponse.cout_pp.toFixed(2)} PP`)
++    ));
++    if (requete.est_long_sort) {
++      zone.appendChild(el('div', { class: 'resultat-row' },
++        el('span', {}, 'Cast'),
++        el('span', { class: 'val' }, 'Long-sort — choisir un palier dans la table dédiée')
++      ));
++    } else {
++      zone.appendChild(el('div', { class: 'resultat-row' },
++        el('span', {}, 'Cast'),
++        el('span', { class: 'val' }, reponse.cast.toFixed(4))
++      ));
++    }
++    const c = reponse.constantes_utilisees;
++    zone.appendChild(el('div', { class: 'constantes-detail' },
++      `C1=${c.c1} · C2=${c.c2} · C3=${c.c3} · C4=${c.c4} · C5=${c.c5} · C6=${c.c6} · C7=${c.c7}`
++    ));
++
++    btnSauver.disabled = false;
++  } catch (e) {
++    zone.className = 'resultat';
++    zone.innerHTML = '';
++    zone.appendChild(el('div', { class: 'erreur' }, `Échec du calcul : ${e.message}`));
++  }
++}
++document.getElementById('btn-calculer').addEventListener('click', calculer);
++
++/* =========================================================================
++   SAUVEGARDE DANS LA BIBLIOTHÈQUE
++   ========================================================================= */
++async function sauverSort() {
++  if (!etat.dernierCalcul) return;
++  if (!etat.personnageId) { alert('Choisis un personnage avant de sauvegarder.'); return; }
++
++  const { requete, reponse } = etat.dernierCalcul;
++  const nom = document.getElementById('f-nom').value.trim();
++  if (!nom) { alert('Donne un nom au sort avant de le sauvegarder.'); return; }
++
++  const payload = {
++    campaign_id: CAMPAIGN_ID,
++    character_id: etat.personnageId,
++    nom,
++    type_magie: requete.type_magie,
++    aspects: requete.aspects,
++    ecoles: requete.ecoles,
++    composants: requete,
++    cout_pp: reponse.cout_pp,
++    cast_ou_long_sort: requete.est_long_sort ? null : reponse.cast,
++    est_long_sort: requete.est_long_sort,
++    notes: '',
++  };
++
++  try {
++    await apiPost('/magie/sorts', payload);
++    await chargerBibliotheque();
++    document.getElementById('btn-sauver').disabled = true;
++  } catch (e) {
++    alert(`Échec de la sauvegarde : ${e.message}`);
++  }
++}
++document.getElementById('btn-sauver').addEventListener('click', sauverSort);
++
++/* =========================================================================
++   BIBLIOTHÈQUE — liste des sorts de la campagne (pas de filtre par joueur,
++   décision Obe du 09/08/2026 — tout le monde voit tous les sorts, comme
++   pour les personnages)
++   ========================================================================= */
++async function chargerBibliotheque() {
++  const zone = document.getElementById('zone-bibliotheque');
++  zone.innerHTML = '';
++  let sorts;
++  try {
++    sorts = await apiGet(`/magie/sorts?campaign_id=${CAMPAIGN_ID}`);
++  } catch (e) {
++    zone.appendChild(el('div', { class: 'erreur' }, `Impossible de charger la bibliothèque : ${e.message}`));
++    return;
++  }
++  if (sorts.length === 0) {
++    zone.appendChild(el('div', { class: 'lib-vide' }, 'Aucun sort enregistré dans cette campagne pour l\'instant.'));
++    return;
++  }
++  sorts.forEach((sort) => {
++    const nomPersonnage = (etat.personnages.find((p) => p.id === sort.character_id) || {}).name || `Personnage #${sort.character_id}`;
++    const carte = el('div', { class: 'sort-card' });
++    carte.appendChild(el('div', { class: 'sort-top' },
++      el('span', { class: 'sort-nom' }, sort.nom),
++      el('span', { class: 'sort-tag' }, sort.type_magie)
++    ));
++    carte.appendChild(el('div', { class: 'sort-meta' },
++      `${sort.aspects.join(' + ')} · ${sort.ecoles.join(' + ')} · ${nomPersonnage}`
++    ));
++    carte.appendChild(el('div', { class: 'sort-chiffres' },
++      el('span', {}, 'Coût ', el('b', {}, `${sort.cout_pp.toFixed(2)} PP`)),
++      el('span', {}, sort.est_long_sort ? 'Long-sort' : 'Cast ', !sort.est_long_sort && el('b', {}, sort.cast_ou_long_sort.toFixed(4)))
++    ));
++    if (sort.notes) {
++      carte.appendChild(el('div', { class: 'sort-notes' }, sort.notes));
++    }
++    const btnSup = el('button', { class: 'danger' }, 'Supprimer');
++    btnSup.addEventListener('click', async () => {
++      if (!confirm(`Supprimer le sort « ${sort.nom} » ?`)) return;
++      try {
++        await apiDelete(`/magie/sorts/${sort.id}`);
++        await chargerBibliotheque();
++      } catch (e) {
++        alert(`Échec de la suppression : ${e.message}`);
++      }
++    });
++    carte.appendChild(el('div', { class: 'sort-actions' }, btnSup));
++    zone.appendChild(carte);
++  });
++}
++
++/* =========================================================================
++   DÉMARRAGE
++   ========================================================================= */
++(async function demarrer() {
++  await chargerPersonnages();
++  await chargerBibliotheque();
++})();
++</script>
++</body>
++</html>
+diff --git a/test.txt b/test.txt
+deleted file mode 100644
+index e69de29..0000000
+-- 
+2.43.0
+

@@ -67,7 +67,7 @@ a{color:inherit;}
   width:100%;
   aspect-ratio:1600/500; /* dimensions natives de l'asset, garde les proportions à toute largeur */
   background-image:
-    linear-gradient(180deg, rgba(18,21,27,0.15) 0%, rgba(18,21,27,0.55) 68%, var(--ink) 100%),
+    linear-gradient(180deg, rgba(18,21,27,0.12) 0%, rgba(18,21,27,0.44) 68%, var(--ink) 100%), /* voile allégé ~20% le 12/08/2026 (0.15->0.12, 0.55->0.44) */
     url('img/hero-keha.jpg');
   background-size:cover;
   background-position:center;
@@ -178,12 +178,20 @@ a{color:inherit;}
 
 .carte-outil{
   display:block; text-decoration:none; color:var(--parchment);
-  background:linear-gradient(180deg, var(--ink-2), var(--ink-3));
-  border:1px solid var(--line); border-radius:6px;
+  /* Fond réchauffé (brun translucide) plutôt que ink-2/ink-3 : ces tokens
+     sont gris-bleu et détonnent sur le fond texturé chaud de cette page,
+     même s'ils marchent bien sur les autres outils (fond neutre là-bas). */
+  background:linear-gradient(180deg, rgba(50,35,20,0.55), rgba(20,14,8,0.65));
+  border:1px solid rgba(192,132,66,0.25); border-radius:6px;
+  border-top:2px solid var(--copper-dim); /* filet cuivré, clin d'œil discret au cadre ornemental */
   padding:22px 20px; text-align:center;
-  transition:border-color .15s ease, transform .15s ease;
+  transition:border-color .15s ease, transform .15s ease, background .15s ease;
 }
-.carte-outil:hover{border-color:var(--copper); transform:translateY(-3px);}
+.carte-outil:hover{
+  border-color:var(--copper);
+  background:linear-gradient(180deg, rgba(70,48,26,0.62), rgba(28,19,10,0.7));
+  transform:translateY(-3px);
+}
 .carte-outil:focus-visible{outline:2px solid var(--gold); outline-offset:2px;}
 .carte-outil img{width:40px; height:40px; margin-bottom:12px;}
 .carte-outil .nom-outil{

@@ -113,3 +113,17 @@ def sync_combat_sheet_from_character(session: Session, character_id: int) -> Non
 
     session.add(combat_sheet)
     session.commit()
+
+
+import hmac
+
+MJ_PASSWORD = os.environ.get("MJ_PASSWORD")
+
+
+def is_mj(password: Optional[str]) -> bool:
+    """Compare en temps constant. Si MJ_PASSWORD n'est pas configuré côté
+    Railway, personne n'est considéré MJ (fail closed, pas d'accès ouvert
+    par oubli de config)."""
+    if not MJ_PASSWORD or not password:
+        return False
+    return hmac.compare_digest(password, MJ_PASSWORD)

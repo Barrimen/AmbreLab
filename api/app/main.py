@@ -12,6 +12,7 @@ from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlmodel import Session, SQLModel, select
+from sqlalchemy import text
 
 from .database import create_db_and_tables, get_session
 from .models import (
@@ -29,12 +30,16 @@ from .models import (
     CharacterInventoryItem, CharacterInventoryItemCreate,
     CharacterCompanion, CharacterCompanionCreate,
     CharacterContact, CharacterContactCreate,
+    ChroniqueEntree, ChroniqueEntreeCreate,
+    ChroniquePersonnage, ChroniquePersonnageCreate,
+    ChroniqueIllustration, ChroniqueIllustrationCreate,
 )
 from .utils import (
     generate_session_code,
     sync_combat_sheet_from_character,
     generate_upload_url,
     generate_download_url,
+    is_mj,
 )
 
 # Système de magie d'Elénior (ajouté le 10/08/2026) : routes regroupées dans
@@ -699,9 +704,6 @@ def get_chronique_illustration_upload_url(entry_id: int, session: Session = Depe
         raise HTTPException(status_code=404, detail="Entrée introuvable")
     key = f"elenior/chronique/{entry_id}/{generate_session_code(10)}"
     return PortraitUploadResponse(upload_url=generate_upload_url(key, "image/*"), r2_key=key)
-
-
-register_character_child_crud  # (existe déjà — inspiration du bloc ci-dessous)
 
 # Enregistrement générique pour les enfants rattachés à entree_id
 # (même principe que register_character_child_crud, adapté au parent Chronique)

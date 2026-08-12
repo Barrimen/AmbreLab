@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chronique — Elénior</title>
+<link rel="stylesheet" href="../tokens.css">
+<!-- marked.js : rendu markdown côté client, aucune dépendance de build (décision du 12/08/2026) -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+/* =========================================================================
+   pages/elenior/chronique/index.html — mémoire vivante de campagne
+   -------------------------------------------------------------------------
+   Rôle : consulter, créer, éditer les entrées de la Chronique (journal /
+   épisode / lettre / info_mj), avec deux vues (liste filtrable, frise
+   chronologique) et une modale unique pour création/édition + illustrations.
+   Backend déjà en place et validé (voir conversation dédiée) : ce fichier ne
+   fait qu'appeler les routes /campaigns/{id}/chronique et /chronique/{id}/*.
+
+   Décisions prises avec Obe avant codage (12/08/2026, à ne pas re-débattre
+   sans raison) :
+   - Frise chronologique en bascule avec la liste (pas deux pages séparées).
+   - Formulaire création/édition intégré à cette page (modale), pas de page
+     dédiée.
+   - mj_password retenu en variable JS le temps de la session (jamais dans
+     localStorage/sessionStorage — perdu au rechargement, cf. consigne de
+     confidentialité). Champ dédié dans la barre de filtres.
+   - Rendu markdown via marked.js (CDN), pas de parsing maison.
+   - Illustrations intercalées dans le texte selon leur champ "ordre" (pas
+     de bloc "galerie" séparé) : le contenu_md est découpé en paragraphes,
+     et les illustrations sont réparties proportionnellement selon leur
+     rang parmi ces paragraphes. C'est une convention de rendu choisie ici
+     faute de balisage explicite dans le markdown pour indiquer une position
+     précise ; à ajuster si un jour on veut un placement au caractère près
+     (ex: un marqueur [illu:2] dans le contenu_md).
+   ========================================================================= */
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--ink);color:var(--parchment);}
+body{font-family:'Spectral',serif; min-height:100vh;}
+h1,h2,h3{font-family:'Cinzel',serif; letter-spacing:0.03em; margin:0 0 8px;}
+a{color:var(--copper);}
+.masque{display:none !important;}
+.wrap{max-width:1100px; margin:0 auto; padding:0 20px 60px;}
+.mono{font-family:'IBM Plex Mono',monospace;}
+
+.fil-retour{
+  display:block; padding:14px 20px; font-family:'IBM Plex Mono',monospace;
+  font-size:11.5px; color:var(--parchment-dim); text-decoration:none;
+}
+.fil-retour:hover{color:var(--copper);}
+
+header.entete{padding:10px 0 24px; border-bottom:1px solid var(--line); margin-bottom:22px;}
+header.entete h1{font-size:1.7rem; color:var(--parchment);}
+header.entete p{color:var(--parchment-dim); margin:4px 0 0; font-size:0.92rem;}
+
+#erreur-globale{background:rgba(168,64,75,0.15); border:1px solid var(--blood); color:var(--parchment);
+  padding:10px 14px; border-radius:5px; margin-bottom:16px; font-size:0.9rem;}
+#statut-chargement{color:var(--parchment-dim); font-family:'IBM Plex Mono',monospace; font-size:0.85rem; margin-bottom:12px;}
+
+/* ---------- Barre d'outils : bascule vue + filtres ---------- */
+.barre-outils{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:20px;
+  padding:14px; background:var(--ink-2); border:1px solid var(--line); border-radius:6px;}
+.bascule-vue{display:flex; gap:0; border:1px solid var(--copper-dim); border-radius:4px; overflow:hidden;}
+.bascule-vue button{background:transparent; border:none; color:var(--parchment-dim); padding:7px 14px;
+  font-family:'IBM Plex Mono',monospace; font-size:0.8rem; cursor:pointer;}
+.bascule-vue button.actif{background:var(--copper-dim); color:var(--parchment);}
+.filtres{display:flex; flex-wrap:wrap; gap:8px; flex:1;}
+.filtres input, .filtres select{
+  background:var(--ink); border:1px solid var(--line); color:var(--parchment);
+  padding:6px 10px; border-radius:4px; font-family:'Spectral',serif; font-size:0.88rem;}
+.filtres input[type="password"]{width:150px;}
+.bouton{background:var(--copper-dim); border:1px solid var(--copper); color:var(--parchment);
+  padding:7px 14px; border-radius:4px; cursor:pointer; font-family:'Cinzel',serif; font-size:0.82rem;
+  letter-spacing:0.03em;}
+.bouton:hover{background:var(--copper);}
+.bouton.discret{background:transparent; border:1px solid var(--line); color:var(--parchment-dim);}
+.bouton.discret:hover{border-color:var(--copper); color:var(--copper);}
+.bouton.danger{background:transparent; border:1px solid var(--blood); color:var(--blood);}
+.bouton.danger:hover{background:var(--blood); color:var(--parchment);}
+.statut-mj{font-family:'IBM Plex Mono',monospace; font-size:0.75rem; padding:5px 9px; border-radius:3px;}
+.statut-mj.actif{background:rgba(203,161,53,0.18); color:var(--gold); border:1px solid var(--gold);}
+
+/* ---------- Vue liste ---------- */
+.liste-entrees{display:flex; flex-direction:column; gap:12px;}
+.carte-entree{background:var(--ink-2); border:1px solid var(--line); border-radius:6px; padding:16px 18px;
+  cursor:pointer; transition:border-color .15s;}
+.carte-entree:hover{border-color:var(--copper-dim);}
+.carte-entree .ligne-tete{display:flex; justify-content:space-between; align-items:baseline; gap:10px; flex-wrap:wrap;}
+.carte-entree h3{font-size:1.05rem; color:var(--parchment);}
+.badge{font-family:'IBM Plex Mono',monospace; font-size:0.7rem; padding:2px 8px; border-radius:10px;
+  border:1px solid var(--verdigris); color:var(--verdigris); white-space:nowrap;}
+.badge.mj{border-color:var(--gold); color:var(--gold);}
+.meta-entree{color:var(--parchment-dim); font-size:0.78rem; font-family:'IBM Plex Mono',monospace; margin-top:4px;}
+.extrait{color:var(--parchment-dim); font-size:0.88rem; margin-top:8px; line-height:1.5;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+.tags-entree{margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;}
+.tag{font-size:0.7rem; font-family:'IBM Plex Mono',monospace; color:var(--parchment-dim);
+  background:rgba(255,255,255,0.04); padding:1px 7px; border-radius:8px;}
+.vide{color:var(--parchment-dim); text-align:center; padding:40px 0; font-style:italic;}
+
+/* ---------- Vue frise ---------- */
+.frise{position:relative; padding:20px 0 20px 24px; border-left:2px solid var(--copper-dim);}
+.frise-seance{margin-bottom:26px;}
+.frise-seance-titre{font-family:'IBM Plex Mono',monospace; font-size:0.78rem; color:var(--copper);
+  margin-bottom:10px; margin-left:-30px; padding-left:6px; border-left:2px solid var(--copper);}
+.frise-point{position:relative; margin-bottom:14px; padding-left:14px;}
+.frise-point::before{content:""; position:absolute; left:-31px; top:6px; width:9px; height:9px;
+  border-radius:50%; background:var(--gold); border:2px solid var(--ink);}
+.frise-point .carte-entree{padding:10px 14px;}
+
+/* ---------- Modale (détail + formulaire) ---------- */
+.fond-modale{position:fixed; inset:0; background:rgba(0,0,0,0.6); display:flex; align-items:flex-start;
+  justify-content:center; padding:40px 16px; overflow-y:auto; z-index:50;}
+.modale{background:var(--ink-2); border:1px solid var(--copper-dim); border-radius:8px; max-width:760px;
+  width:100%; padding:26px 28px; margin-bottom:40px;}
+.modale-tete{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px;}
+.modale-fermer{background:none; border:none; color:var(--parchment-dim); font-size:1.3rem; cursor:pointer; line-height:1;}
+.modale-fermer:hover{color:var(--copper);}
+
+.contenu-rendu{line-height:1.7; font-size:0.98rem;}
+.contenu-rendu p{margin:0 0 14px;}
+.contenu-rendu img{max-width:100%; border-radius:5px; border:1px solid var(--line); display:block; margin:14px 0;}
+.legende-illu{font-family:'IBM Plex Mono',monospace; font-size:0.72rem; color:var(--parchment-dim);
+  text-align:center; margin-top:-8px; margin-bottom:14px;}
+.chips-persos{display:flex; gap:6px; flex-wrap:wrap; margin-top:14px;}
+.chip-perso{font-size:0.75rem; font-family:'IBM Plex Mono',monospace; background:rgba(95,148,132,0.15);
+  color:var(--verdigris); border:1px solid var(--verdigris); padding:2px 9px; border-radius:10px;}
+
+.champ{margin-bottom:14px;}
+.champ label{display:block; font-family:'IBM Plex Mono',monospace; font-size:0.72rem;
+  color:var(--parchment-dim); margin-bottom:5px; letter-spacing:0.03em;}
+.champ input, .champ select, .champ textarea{
+  width:100%; background:var(--ink); border:1px solid var(--line); color:var(--parchment);
+  padding:8px 10px; border-radius:4px; font-family:'Spectral',serif; font-size:0.92rem;}
+.champ textarea{min-height:180px; font-family:'IBM Plex Mono',monospace; font-size:0.85rem; resize:vertical;}
+.ligne-champs{display:flex; gap:12px; flex-wrap:wrap;}
+.ligne-champs .champ{flex:1; min-width:150px;}
+.check-inline{display:flex; align-items:center; gap:8px; font-family:'IBM Plex Mono',monospace; font-size:0.8rem;}
+.check-inline input{width:auto;}
+
+.bloc-illustrations{border-top:1px solid var(--line); margin-top:18px; padding-top:14px;}
+.bloc-illustrations h4{font-family:'IBM Plex Mono',monospace; font-size:0.78rem; color:var(--parchment-dim);
+  margin-bottom:10px; text-transform:uppercase; letter-spacing:0.05em;}
+.liste-illus-form{display:flex; flex-direction:column; gap:8px; margin-bottom:10px;}
+.item-illu-form{display:flex; align-items:center; gap:8px; font-size:0.8rem; background:var(--ink);
+  border:1px solid var(--line); border-radius:4px; padding:6px 10px;}
+.item-illu-form .legende{flex:1; color:var(--parchment-dim);}
+
+.bloc-actions{display:flex; justify-content:space-between; align-items:center; margin-top:20px;
+  padding-top:16px; border-top:1px solid var(--line);}
+.bloc-actions .groupe{display:flex; gap:8px;}
+</style>
+</head>
+<body>
+
+<a class="fil-retour" href="../index.html">← Retour à Elénior</a>
+
+<div class="wrap">
+  <header class="entete">
+    <h1>Chronique</h1>
+    <p>Mémoire vivante de la campagne — journaux, épisodes, lettres et notes de MJ.</p>
+  </header>
+
+  <div id="erreur-globale" class="masque"></div>
+  <div id="statut-chargement" class="masque"></div>
+
+  <div class="barre-outils">
+    <div class="bascule-vue">
+      <button id="btn-vue-liste" class="actif">Liste</button>
+      <button id="btn-vue-frise">Frise</button>
+    </div>
+    <div class="filtres">
+      <input type="text" id="filtre-q" placeholder="Recherche...">
+      <select id="filtre-categorie">
+        <option value="">Toutes catégories</option>
+        <option value="journal">Journal</option>
+        <option value="episode">Épisode</option>
+        <option value="lettre">Lettre</option>
+        <option value="info_mj">Info MJ</option>
+      </select>
+      <input type="text" id="filtre-tag" placeholder="Tag...">
+      <select id="filtre-sort">
+        <option value="date_jeu_ordre">Tri : date en jeu</option>
+        <option value="date_redaction">Tri : date de rédaction</option>
+      </select>
+      <input type="password" id="filtre-mj-password" placeholder="Mot de passe MJ">
+      <span id="statut-mj" class="statut-mj mono masque">Vue MJ active</span>
+    </div>
+    <button class="bouton" id="btn-nouvelle-entree">+ Nouvelle entrée</button>
+  </div>
+
+  <div id="vue-liste" class="liste-entrees"></div>
+  <div id="vue-frise" class="frise masque"></div>
+</div>
+
+<div id="fond-modale" class="fond-modale masque"></div>
+
+<script>
+/* ============================================================================
+   1. Config + état   2. Outils DOM   3. Appels API   4. Chargement + filtres
+   5. Vue liste   6. Vue frise   7. Rendu markdown + illustrations intercalées
+   8. Modale détail   9. Modale formulaire (création/édition)
+   10. Illustrations (upload)   11. Personnages liés   12. Démarrage
+   ============================================================================ */
+
+const API_BASE = 'https://api.ambrelab.com';
+const CAMPAIGN_ID = 1; // Elénior — même convention que les autres outils
+
+const etat = {
+  entrees: [],
+  vue: 'liste', // 'liste' | 'frise'
+  // Mot de passe MJ : gardé UNIQUEMENT en mémoire JS pour la durée de la
+  // session (onglet ouvert). Jamais écrit en localStorage/sessionStorage —
+  // c'est la consigne de confidentialité validée avec Obe. Perdu au
+  // rechargement de la page (comportement voulu).
+  mjPassword: '',
+  personnages: [], // catalogue des personnages de la campagne, chargé une fois
+};
+
+/* ---------- 2. OUTILS DOM ---------- */
+
+function el(tag, attrs = {}, ...enfants) {
+  const e = document.createElement(tag);
+  for (const k in attrs) {
+    if (attrs[k] === undefined || attrs[k] === null) continue;
+    if (k === 'class') e.className = attrs[k];
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), attrs[k]);
+    else e.setAttribute(k, attrs[k]);
+  }
+  enfants.forEach((c) => {
+    if (typeof c === 'string') e.appendChild(document.createTextNode(c));
+    else if (c) e.appendChild(c);
+  });
+  return e;
+}
+
+function afficherErreur(message) {
+  const zone = document.getElementById('erreur-globale');
+  zone.textContent = message;
+  zone.classList.remove('masque');
+}
+function effacerErreur() {
+  const zone = document.getElementById('erreur-globale');
+  zone.textContent = '';
+  zone.classList.add('masque');
+}
+function afficherChargement(message) {
+  const zone = document.getElementById('statut-chargement');
+  zone.textContent = message;
+  zone.classList.remove('masque');
+}
+function masquerChargement() {
+  document.getElementById('statut-chargement').classList.add('masque');
+}
+
+/* ---------- 3. APPELS API ---------- */
+
+async function api(path, opts = {}) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+  });
+  if (!res.ok) {
+    let detail = res.statusText;
+    try { const j = await res.json(); detail = j.detail || detail; } catch (e) { /* pas de corps JSON */ }
+    throw new Error(`${res.status} ${detail}`);
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
+const apiGet = (path) => api(path);
+const apiPost = (path, body) => api(path, { method: 'POST', body: JSON.stringify(body) });
+const apiPut = (path, body) => api(path, { method: 'PUT', body: JSON.stringify(body) });
+const apiDelete = (path) => api(path, { method: 'DELETE' });
+
+// Ajoute mj_password en query string si renseigné (lecture des entrées MJ).
+function avecMjPassword(path) {
+  if (!etat.mjPassword) return path;
+  const sep = path.includes('?') ? '&' : '?';
+  return `${path}${sep}mj_password=${encodeURIComponent(etat.mjPassword)}`;
+}
+
+/* ---------- 4. CHARGEMENT + FILTRES ---------- */
+
+function construireQueryFiltres() {
+  const params = new URLSearchParams();
+  const categorie = document.getElementById('filtre-categorie').value;
+  const tag = document.getElementById('filtre-tag').value.trim();
+  const q = document.getElementById('filtre-q').value.trim();
+  const sort = document.getElementById('filtre-sort').value;
+  if (categorie) params.set('categorie', categorie);
+  if (tag) params.set('tag', tag);
+  if (q) params.set('q', q);
+  if (sort) params.set('sort', sort);
+  if (etat.mjPassword) params.set('mj_password', etat.mjPassword);
+  return params.toString();
+}
+
+async function chargerEntrees() {
+  afficherChargement('Chargement de la chronique...');
+  effacerErreur();
+  try {
+    const qs = construireQueryFiltres();
+    etat.entrees = await apiGet(`/campaigns/${CAMPAIGN_ID}/chronique${qs ? '?' + qs : ''}`);
+    rendreVueActive();
+  } catch (e) {
+    afficherErreur(`Impossible de charger la chronique : ${e.message}`);
+  } finally {
+    masquerChargement();
+  }
+}
+
+async function chargerPersonnages() {
+  try {
+    etat.personnages = await apiGet(`/campaigns/${CAMPAIGN_ID}/characters`);
+  } catch (e) {
+    // Non bloquant : la chronique reste consultable sans le catalogue de
+    // personnages, seul le lien "personnages" dans le formulaire sera vide.
+    console.warn('Catalogue personnages indisponible :', e.message);
+  }
+}
+
+function rendreVueActive() {
+  document.getElementById('vue-liste').classList.toggle('masque', etat.vue !== 'liste');
+  document.getElementById('vue-frise').classList.toggle('masque', etat.vue !== 'frise');
+  if (etat.vue === 'liste') rendreVueListe(); else rendreVueFrise();
+}
+
+/* ---------- 5. VUE LISTE ---------- */
+
+const LIBELLES_CATEGORIE = { journal: 'Journal', episode: 'Épisode', lettre: 'Lettre', info_mj: 'Info MJ' };
+
+function extraitTexte(md, longueur = 160) {
+  const brut = (md || '').replace(/[#*_`>\-]/g, '').replace(/\s+/g, ' ').trim();
+  return brut.length > longueur ? brut.slice(0, longueur) + '…' : brut;
+}
+
+function carteEntree(entree) {
+  const carte = el('div', { class: 'carte-entree', onclick: () => ouvrirDetail(entree) },
+    el('div', { class: 'ligne-tete' },
+      el('h3', {}, entree.titre),
+      el('span', { class: 'badge' + (entree.visibilite === 'mj' ? ' mj' : '') },
+        LIBELLES_CATEGORIE[entree.categorie] || entree.categorie)
+    ),
+    el('div', { class: 'meta-entree' },
+      [entree.date_jeu_libelle, entree.numero_seance ? `séance ${entree.numero_seance}` : null, entree.auteur]
+        .filter(Boolean).join(' · ')
+    ),
+    el('div', { class: 'extrait' }, extraitTexte(entree.contenu_md))
+  );
+  if (entree.tags && entree.tags.length) {
+    const zoneTags = el('div', { class: 'tags-entree' });
+    entree.tags.forEach((t) => zoneTags.appendChild(el('span', { class: 'tag' }, t)));
+    carte.appendChild(zoneTags);
+  }
+  return carte;
+}
+
+function rendreVueListe() {
+  const zone = document.getElementById('vue-liste');
+  zone.innerHTML = '';
+  if (!etat.entrees.length) {
+    zone.appendChild(el('div', { class: 'vide' }, 'Aucune entrée pour ces filtres.'));
+    return;
+  }
+  etat.entrees.forEach((entree) => zone.appendChild(carteEntree(entree)));
+}
+
+/* ---------- 6. VUE FRISE ---------- */
+// Groupée par numero_seance (les entrées sans séance vont dans un groupe à
+// part), triée par date_jeu_ordre — l'API renvoie déjà le tri demandé côté
+// filtre "sort", ici on regroupe simplement l'affichage.
+
+function rendreVueFrise() {
+  const zone = document.getElementById('vue-frise');
+  zone.innerHTML = '';
+  if (!etat.entrees.length) {
+    zone.appendChild(el('div', { class: 'vide' }, 'Aucune entrée pour ces filtres.'));
+    return;
+  }
+  const groupes = new Map();
+  etat.entrees.forEach((entree) => {
+    const cle = entree.numero_seance != null ? `Séance ${entree.numero_seance}` : 'Sans séance';
+    if (!groupes.has(cle)) groupes.set(cle, []);
+    groupes.get(cle).push(entree);
+  });
+  groupes.forEach((entrees, cle) => {
+    const bloc = el('div', { class: 'frise-seance' },
+      el('div', { class: 'frise-seance-titre' }, cle)
+    );
+    entrees.forEach((entree) => {
+      bloc.appendChild(el('div', { class: 'frise-point' }, carteEntree(entree)));
+    });
+    zone.appendChild(bloc);
+  });
+}
+
+/* ---------- 7. RENDU MARKDOWN + ILLUSTRATIONS INTERCALÉES ---------- */
+// Découpe le HTML rendu par marked.js en blocs de plus haut niveau et
+// insère les illustrations (triées par "ordre") réparties proportionnellement
+// parmi ces blocs. Convention de placement approximative faute de marqueur
+// explicite dans le contenu_md — voir commentaire en tête de fichier.
+
+function rendreContenuAvecIllustrations(contenuMd, illustrations) {
+  const html = marked.parse(contenuMd || '');
+  const conteneur = document.createElement('div');
+  conteneur.innerHTML = html;
+  const blocs = Array.from(conteneur.children);
+
+  const zoneFinale = el('div', { class: 'contenu-rendu' });
+  if (!illustrations || !illustrations.length || !blocs.length) {
+    zoneFinale.innerHTML = html;
+    return zoneFinale;
+  }
+
+  const illusTriees = [...illustrations].sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0));
+  const pas = blocs.length / (illusTriees.length + 1);
+
+  let indexIllu = 0;
+  blocs.forEach((bloc, i) => {
+    zoneFinale.appendChild(bloc);
+    // insère une illustration après ce bloc si son "rang cible" est atteint
+    while (indexIllu < illusTriees.length && (i + 1) >= Math.round(pas * (indexIllu + 1))) {
+      zoneFinale.appendChild(elementIllustration(illusTriees[indexIllu]));
+      indexIllu++;
+    }
+  });
+  // illustrations restantes (cas d'arrondi) en fin de contenu
+  while (indexIllu < illusTriees.length) {
+    zoneFinale.appendChild(elementIllustration(illusTriees[indexIllu]));
+    indexIllu++;
+  }
+  return zoneFinale;
+}
+
+function elementIllustration(illu) {
+  const frag = document.createDocumentFragment();
+  // NOTE : on suppose que la ressource renvoyée par
+  // GET /chronique/{entry_id}/illustrations expose une URL directement
+  // affichable (ex: champ "url" signé), en plus de r2_key. À vérifier /
+  // ajuster côté front si l'API ne renvoie que r2_key brut (accès R2 public
+  // désactivé, il faudrait alors une route de signature dédiée par image).
+  const src = illu.url || illu.r2_key;
+  frag.appendChild(el('img', { src, alt: illu.legende || '' }));
+  if (illu.legende) frag.appendChild(el('div', { class: 'legende-illu' }, illu.legende));
+  return frag;
+}
+
+/* ---------- 8. MODALE DÉTAIL ---------- */
+
+function ouvrirModale(contenuEl) {
+  const fond = document.getElementById('fond-modale');
+  fond.innerHTML = '';
+  fond.appendChild(contenuEl);
+  fond.classList.remove('masque');
+  fond.onclick = (ev) => { if (ev.target === fond) fermerModale(); };
+}
+function fermerModale() {
+  document.getElementById('fond-modale').classList.add('masque');
+}
+
+async function ouvrirDetail(entreeResume) {
+  afficherChargement('Chargement de l\'entrée...');
+  try {
+    const path = avecMjPassword(`/chronique/${entreeResume.id}`);
+    const entree = await apiGet(path);
+    const [illustrations, personnagesLies] = await Promise.all([
+      apiGet(`/chronique/${entree.id}/illustrations`).catch(() => []),
+      apiGet(`/chronique/${entree.id}/personnages`).catch(() => []),
+    ]);
+
+    const modale = el('div', { class: 'modale' },
+      el('div', { class: 'modale-tete' },
+        el('div', {},
+          el('h2', {}, entree.titre),
+          el('div', { class: 'meta-entree' },
+            [entree.date_jeu_libelle, entree.numero_seance ? `séance ${entree.numero_seance}` : null,
+             entree.auteur, LIBELLES_CATEGORIE[entree.categorie] || entree.categorie]
+              .filter(Boolean).join(' · '))
+        ),
+        el('button', { class: 'modale-fermer', onclick: fermerModale }, '×')
+      ),
+      rendreContenuAvecIllustrations(entree.contenu_md, illustrations)
+    );
+
+    if (personnagesLies.length) {
+      const zoneChips = el('div', { class: 'chips-persos' });
+      personnagesLies.forEach((p) => zoneChips.appendChild(el('span', { class: 'chip-perso' }, p.name || p.nom || `#${p.character_id}`)));
+      modale.appendChild(zoneChips);
+    }
+
+    modale.appendChild(
+      el('div', { class: 'bloc-actions' },
+        el('span', { class: 'mono', style: 'color:var(--parchment-dim); font-size:0.75rem;' },
+          entree.visibilite === 'mj' ? (entree.revelee ? 'Info MJ — révélée' : 'Info MJ — non révélée') : 'Publique'),
+        el('div', { class: 'groupe' },
+          el('button', { class: 'bouton discret', onclick: () => ouvrirFormulaire(entree) }, 'Éditer'),
+          el('button', { class: 'bouton danger', onclick: () => supprimerEntree(entree) }, 'Supprimer')
+        )
+      )
+    );
+
+    ouvrirModale(modale);
+  } catch (e) {
+    afficherErreur(`Impossible d'ouvrir l'entrée : ${e.message}`);
+  } finally {
+    masquerChargement();
+  }
+}
+
+async function supprimerEntree(entree) {
+  if (!confirm(`Supprimer définitivement « ${entree.titre} » ?`)) return;
+  try {
+    await apiDelete(avecMjPassword(`/chronique/${entree.id}`));
+    fermerModale();
+    chargerEntrees();
+  } catch (e) {
+    afficherErreur(`Suppression impossible : ${e.message}`);
+  }
+}
+
+/* ---------- 9. MODALE FORMULAIRE (création/édition) ---------- */
+
+function ouvrirFormulaire(entreeExistante) {
+  const estEdition = !!entreeExistante;
+  const brouillon = estEdition
+    ? { ...entreeExistante }
+    : { titre: '', categorie: 'journal', tags: [], contenu_md: '', auteur: '',
+        visibilite: 'publique', revelee: true, date_jeu_libelle: '', date_jeu_ordre: 0, numero_seance: null };
+
+  const champTitre = el('input', { type: 'text', value: brouillon.titre });
+  const champCategorie = el('select', {},
+    ...Object.entries(LIBELLES_CATEGORIE).map(([v, l]) => el('option', { value: v, selected: v === brouillon.categorie ? 'selected' : undefined }, l))
+  );
+  const champAuteur = el('input', { type: 'text', value: brouillon.auteur || '' });
+  const champDateLibelle = el('input', { type: 'text', value: brouillon.date_jeu_libelle || '', placeholder: 'ex: 14 Pluvinar, an 3' });
+  const champDateOrdre = el('input', { type: 'number', value: brouillon.date_jeu_ordre ?? 0 });
+  const champSeance = el('input', { type: 'number', value: brouillon.numero_seance ?? '' });
+  const champTags = el('input', { type: 'text', value: (brouillon.tags || []).join(', '), placeholder: 'séparés par des virgules' });
+  const champVisibilite = el('select', {},
+    el('option', { value: 'publique', selected: brouillon.visibilite === 'publique' ? 'selected' : undefined }, 'Publique'),
+    el('option', { value: 'mj', selected: brouillon.visibilite === 'mj' ? 'selected' : undefined }, 'MJ uniquement')
+  );
+  const champRevelee = el('input', { type: 'checkbox' });
+  champRevelee.checked = !!brouillon.revelee;
+  const champContenu = el('textarea', {}, brouillon.contenu_md || '');
+
+  const modale = el('div', { class: 'modale' },
+    el('div', { class: 'modale-tete' },
+      el('h2', {}, estEdition ? 'Éditer l\'entrée' : 'Nouvelle entrée'),
+      el('button', { class: 'modale-fermer', onclick: fermerModale }, '×')
+    ),
+    el('div', { class: 'champ' }, el('label', {}, 'Titre'), champTitre),
+    el('div', { class: 'ligne-champs' },
+      el('div', { class: 'champ' }, el('label', {}, 'Catégorie'), champCategorie),
+      el('div', { class: 'champ' }, el('label', {}, 'Auteur'), champAuteur)
+    ),
+    el('div', { class: 'ligne-champs' },
+      el('div', { class: 'champ' }, el('label', {}, 'Date en jeu (libellé affiché)'), champDateLibelle),
+      el('div', { class: 'champ' }, el('label', {}, 'Ordre de tri (date en jeu)'), champDateOrdre),
+      el('div', { class: 'champ' }, el('label', {}, 'N° séance'), champSeance)
+    ),
+    el('div', { class: 'champ' }, el('label', {}, 'Tags'), champTags),
+    el('div', { class: 'ligne-champs' },
+      el('div', { class: 'champ' }, el('label', {}, 'Visibilité'), champVisibilite),
+      el('div', { class: 'champ check-inline' }, champRevelee, el('label', {}, 'Révélée aux joueurs'))
+    ),
+    el('div', { class: 'champ' }, el('label', {}, 'Contenu (markdown)'), champContenu)
+  );
+
+  // Bloc illustrations : uniquement disponible une fois l'entrée créée
+  // (il faut un entry_id pour appeler illustration-upload-url).
+  const blocIllus = el('div', { class: 'bloc-illustrations' },
+    el('h4', {}, 'Illustrations'),
+    el('div', { class: 'liste-illus-form', id: 'liste-illus-form' })
+  );
+  if (estEdition) {
+    modale.appendChild(blocIllus);
+    chargerIllustrationsFormulaire(entreeExistante.id, blocIllus);
+    const inputFichier = el('input', { type: 'file', accept: 'image/*' });
+    const champLegende = el('input', { type: 'text', placeholder: 'Légende (optionnel)', style: 'width:220px;' });
+    blocIllus.appendChild(el('div', { class: 'ligne-champs' },
+      el('div', { class: 'champ' }, inputFichier),
+      el('div', { class: 'champ' }, champLegende),
+      el('button', {
+        class: 'bouton discret', type: 'button',
+        onclick: () => ajouterIllustration(entreeExistante.id, inputFichier, champLegende, blocIllus),
+      }, 'Ajouter'),
+    ));
+  } else {
+    blocIllus.appendChild(el('div', { class: 'meta-entree' }, 'Enregistrez d\'abord l\'entrée pour ajouter des illustrations.'));
+    modale.appendChild(blocIllus);
+  }
+
+  modale.appendChild(
+    el('div', { class: 'bloc-actions' },
+      el('span', {}, ''),
+      el('div', { class: 'groupe' },
+        el('button', { class: 'bouton discret', onclick: fermerModale }, 'Annuler'),
+        el('button', {
+          class: 'bouton',
+          onclick: () => enregistrerEntree(entreeExistante ? entreeExistante.id : null, {
+            titre: champTitre.value.trim(),
+            categorie: champCategorie.value,
+            auteur: champAuteur.value.trim(),
+            date_jeu_libelle: champDateLibelle.value.trim(),
+            date_jeu_ordre: Number(champDateOrdre.value) || 0,
+            numero_seance: champSeance.value ? Number(champSeance.value) : null,
+            tags: champTags.value.split(',').map((t) => t.trim()).filter(Boolean),
+            visibilite: champVisibilite.value,
+            revelee: champRevelee.checked,
+            contenu_md: champContenu.value,
+          }),
+        }, estEdition ? 'Enregistrer' : 'Créer'),
+      )
+    )
+  );
+
+  ouvrirModale(modale);
+}
+
+async function enregistrerEntree(id, donnees) {
+  if (!donnees.titre) { afficherErreur('Le titre est obligatoire.'); return; }
+  try {
+    let entree;
+    if (id) {
+      entree = await apiPut(avecMjPassword(`/chronique/${id}`), donnees);
+    } else {
+      entree = await apiPost(avecMjPassword(`/campaigns/${CAMPAIGN_ID}/chronique`), donnees);
+    }
+    effacerErreur();
+    if (!id) {
+      // Entrée nouvellement créée : on rouvre le formulaire en mode édition
+      // pour permettre l'ajout d'illustrations tout de suite.
+      ouvrirFormulaire(entree);
+    } else {
+      fermerModale();
+    }
+    chargerEntrees();
+  } catch (e) {
+    afficherErreur(`Enregistrement impossible : ${e.message}`);
+  }
+}
+
+/* ---------- 10. ILLUSTRATIONS (upload) ---------- */
+
+async function chargerIllustrationsFormulaire(entryId, blocIllus) {
+  const zone = blocIllus.querySelector('#liste-illus-form');
+  try {
+    const illus = await apiGet(`/chronique/${entryId}/illustrations`);
+    zone.innerHTML = '';
+    illus.sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0)).forEach((illu) => {
+      zone.appendChild(el('div', { class: 'item-illu-form' },
+        el('span', { class: 'mono' }, `#${illu.ordre ?? '?'}`),
+        el('span', { class: 'legende' }, illu.legende || '(sans légende)'),
+        el('button', {
+          class: 'bouton danger', type: 'button', style: 'padding:3px 8px; font-size:0.7rem;',
+          onclick: async () => {
+            try { await apiDelete(`/chronique/${entryId}/illustrations/${illu.id}`); chargerIllustrationsFormulaire(entryId, blocIllus); }
+            catch (e) { afficherErreur(`Suppression illustration impossible : ${e.message}`); }
+          },
+        }, '×'),
+      ));
+    });
+  } catch (e) {
+    zone.innerHTML = '';
+    zone.appendChild(el('div', { class: 'meta-entree' }, 'Illustrations indisponibles.'));
+  }
+}
+
+async function ajouterIllustration(entryId, inputFichier, champLegende, blocIllus) {
+  const fichier = inputFichier.files[0];
+  if (!fichier) { afficherErreur('Choisissez un fichier image.'); return; }
+  try {
+    // Étape 1 : demander une URL de dépôt signée (même schéma que le
+    // portrait de personnage, déjà validé en prod).
+    const ext = fichier.name.split('.').pop();
+    const { upload_url, key } = await apiPost(`/chronique/${entryId}/illustration-upload-url`, {
+      extension: ext, content_type: fichier.type,
+    });
+    // Étape 2 : dépôt direct sur R2 via l'URL signée.
+    const resUpload = await fetch(upload_url, { method: 'PUT', body: fichier, headers: { 'Content-Type': fichier.type } });
+    if (!resUpload.ok) throw new Error(`échec du dépôt (${resUpload.status})`);
+    // Étape 3 : enregistrer la métadonnée de l'illustration côté API.
+    const illusExistantes = await apiGet(`/chronique/${entryId}/illustrations`).catch(() => []);
+    await apiPost(`/chronique/${entryId}/illustrations`, {
+      r2_key: key, legende: champLegende.value.trim(), ordre: illusExistantes.length,
+    });
+    inputFichier.value = '';
+    champLegende.value = '';
+    effacerErreur();
+    chargerIllustrationsFormulaire(entryId, blocIllus);
+  } catch (e) {
+    afficherErreur(`Ajout de l'illustration impossible : ${e.message}`);
+  }
+}
+
+/* ---------- 12. DÉMARRAGE ---------- */
+
+document.getElementById('btn-vue-liste').addEventListener('click', () => { etat.vue = 'liste'; majBoutonsVue(); rendreVueActive(); });
+document.getElementById('btn-vue-frise').addEventListener('click', () => { etat.vue = 'frise'; majBoutonsVue(); rendreVueActive(); });
+function majBoutonsVue() {
+  document.getElementById('btn-vue-liste').classList.toggle('actif', etat.vue === 'liste');
+  document.getElementById('btn-vue-frise').classList.toggle('actif', etat.vue === 'frise');
+}
+
+document.getElementById('btn-nouvelle-entree').addEventListener('click', () => ouvrirFormulaire(null));
+
+['filtre-categorie', 'filtre-sort'].forEach((id) => document.getElementById(id).addEventListener('change', chargerEntrees));
+let debounceRecherche;
+['filtre-q', 'filtre-tag'].forEach((id) => document.getElementById(id).addEventListener('input', () => {
+  clearTimeout(debounceRecherche);
+  debounceRecherche = setTimeout(chargerEntrees, 350);
+}));
+
+document.getElementById('filtre-mj-password').addEventListener('change', (ev) => {
+  etat.mjPassword = ev.target.value;
+  document.getElementById('statut-mj').classList.toggle('masque', !etat.mjPassword);
+  chargerEntrees();
+});
+
+document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') fermerModale(); });
+
+(async function demarrer() {
+  await Promise.all([chargerEntrees(), chargerPersonnages()]);
+})();
+</script>
+</body>
+</html>

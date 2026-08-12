@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elénior — Les Compagnons de l'Infortune</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+/* =========================================================================
+   pages/elenior/index.html — vitrine de campagne
+   -------------------------------------------------------------------------
+   Rôle : page d'accueil de la campagne Elénior. Point d'entrée thématique
+   entre le portail (pages/index.html) et les 3 outils (Cadran, Fiche de
+   personnage, Magie). Ne contient aucune logique métier / aucun appel API :
+   c'est une page 100% statique, ambiance + distribution de liens.
+
+   Décisions prises (session du 12/08/2026, à ne pas re-débattre sans raison) :
+   - Les 3 icônes 48px fournies (actualités / groupe / journal) n'avaient pas
+     de correspondance thématique avec les 3 outils. Obe a validé qu'il
+     s'agissait d'un simple nommage de fichier, sans importance sémantique :
+     elles ont donc été renommées et attribuées comme suit (libre à toi de
+     les réattribuer plus tard si un meilleur "matching" te vient) :
+       elenior_icon_journal_48.png     -> img/icone-cadran.png      (Cadran)
+       elenior_icon_groupe_48.png      -> img/icone-personnage.png  (Fiche)
+       elenior_icon_actualites_48.png  -> img/icone-magie.png       (Magie)
+   - Le portail (pages/index.html) doit être mis à jour en parallèle
+     (option A validée) : les 3 cartes actuelles de la section "Elénior"
+     sont remplacées par une carte unique pointant ici. Fichier fourni à
+     part dans la même livraison — pas encore poussé sur le repo.
+   - hero-keha.jpg et texture-fond.jpg ont été convertis de PNG vers JPEG
+     (aucune transparence utilisée dans ces deux images) pour alléger
+     nettement le poids de page (~6.7 Mo -> ~3 Mo au total sur les 8 assets).
+     bouton-*.png et cadre-ornemental.png restent en PNG car ils exploitent
+     une vraie transparence (coins/bords découpés).
+   ========================================================================= */
+
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;} /* pour l'ancre #outils visée par le bouton CTA */
+html,body{margin:0;padding:0;background:var(--ink);color:var(--parchment);}
+body{
+  font-family:'Spectral',serif;
+  /* Texture tileable + voile sombre par-dessus (cf. brief : "background-image
+     répété avec overlay sombre CSS"). background-size réduit la tuile pour un
+     grain plus fin qu'à sa taille native (1254px). */
+  background-image:
+    linear-gradient(rgba(18,21,27,0.90), rgba(18,21,27,0.90)),
+    url('img/texture-fond.jpg');
+  background-repeat:no-repeat, repeat;
+  background-size:cover, 460px 460px;
+  min-height:100vh;
+}
+h1,h2,h3{font-family:'Cinzel',serif; letter-spacing:0.03em; margin:0;}
+a{color:inherit;}
+.wrap{max-width:1180px;margin:0 auto; padding:0 20px;}
+
+/* ---------- Fil d'Ariane vers le portail ---------- */
+.fil-retour{
+  display:block; padding:14px 20px; font-family:'IBM Plex Mono',monospace;
+  font-size:11.5px; color:var(--parchment-dim); text-decoration:none;
+  letter-spacing:0.04em;
+}
+.fil-retour:hover{color:var(--copper);}
+
+/* ---------- Hero ---------- */
+.hero{
+  position:relative;
+  width:100%;
+  aspect-ratio:1600/500; /* dimensions natives de l'asset, garde les proportions à toute largeur */
+  background-image:
+    linear-gradient(180deg, rgba(18,21,27,0.15) 0%, rgba(18,21,27,0.55) 68%, var(--ink) 100%),
+    url('img/hero-keha.jpg');
+  background-size:cover;
+  background-position:center;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+}
+.hero-contenu{padding:0 20px; max-width:760px;}
+.hero-titre{
+  font-size:clamp(34px, 6vw, 58px);
+  color:var(--parchment);
+  text-shadow:0 2px 18px rgba(0,0,0,0.75);
+}
+.hero-titre span{color:var(--gold);}
+.hero-sous-titre{
+  font-family:'Cinzel',serif; font-size:clamp(13px, 2vw, 16px);
+  letter-spacing:0.12em; text-transform:uppercase; color:var(--copper);
+  margin-top:6px; text-shadow:0 2px 10px rgba(0,0,0,0.8);
+}
+.hero-accroche{
+  font-style:italic; color:var(--parchment); font-size:clamp(13.5px, 1.6vw, 16px);
+  margin-top:16px; text-shadow:0 2px 10px rgba(0,0,0,0.85); line-height:1.6;
+}
+
+/* Bouton "Entrer dans la campagne" : image à 2 états (normal/hover) en
+   crossfade CSS. Ancre vers #outils : sur cette page, "entrer dans la
+   campagne" = descendre vers les 3 outils, il n'y a rien d'autre derrière. */
+.cta-entrer{
+  position:relative; display:inline-block; margin-top:22px;
+  width:min(340px, 78vw);
+}
+.cta-entrer img{display:block; width:100%; height:auto;}
+.cta-entrer .etat-hover{position:absolute; inset:0; opacity:0; transition:opacity .18s ease;}
+.cta-entrer:hover .etat-hover, .cta-entrer:focus-visible .etat-hover{opacity:1;}
+.cta-entrer:focus-visible{outline:2px solid var(--gold); outline-offset:5px; border-radius:8px;}
+
+/* ---------- Section ambiance (texte encadré) ---------- */
+.section-ambiance{padding:56px 20px 40px;}
+.cadre-ambiance{
+  position:relative;
+  max-width:820px;
+  margin:0 auto;
+  aspect-ratio:1536/1024; /* proportions natives du cadre ornemental */
+}
+.cadre-ambiance img.cadre-deco{
+  position:absolute; inset:0; width:100%; height:100%;
+  pointer-events:none; user-select:none;
+}
+.cadre-ambiance .cadre-texte{
+  position:relative; height:100%;
+  /* Padding calé sur la zone transparente réelle du PNG (mesurée : ~16.6-
+     17.8% vertical, ~10.2-10.3% horizontal), avec une marge de sécurité
+     supplémentaire pour ne jamais chevaucher les motifs dorés. */
+  padding:19% 12%;
+  display:flex; flex-direction:column; justify-content:center;
+  text-align:center;
+}
+.cadre-texte h2{
+  font-size:clamp(16px,2.4vw,20px); color:var(--gold); margin-bottom:10px;
+  text-transform:uppercase; letter-spacing:0.08em;
+}
+.cadre-texte p{
+  font-size:clamp(12.5px,1.5vw,14.5px); line-height:1.75; color:var(--parchment-dim);
+  margin:0;
+}
+.cadre-texte p + p{margin-top:10px;}
+
+/* ---------- Section outils ---------- */
+.section-outils{padding:20px 20px 60px;}
+.section-outils h2{
+  text-align:center; font-size:20px; color:var(--parchment);
+  margin-bottom:6px;
+}
+.section-outils .sous-titre{
+  text-align:center; font-style:italic; font-size:12.5px;
+  color:var(--parchment-dim); margin-bottom:28px;
+}
+
+.grille-outils{
+  display:grid; grid-template-columns:repeat(3, 1fr); gap:20px;
+  max-width:1000px; margin:0 auto;
+}
+@media (max-width:820px){ .grille-outils{grid-template-columns:1fr;} }
+
+.carte-outil{
+  display:block; text-decoration:none; color:var(--parchment);
+  background:linear-gradient(180deg, var(--ink-2), var(--ink-3));
+  border:1px solid var(--line); border-radius:6px;
+  padding:22px 20px; text-align:center;
+  transition:border-color .15s ease, transform .15s ease;
+}
+.carte-outil:hover{border-color:var(--copper); transform:translateY(-3px);}
+.carte-outil:focus-visible{outline:2px solid var(--gold); outline-offset:2px;}
+.carte-outil img{width:40px; height:40px; margin-bottom:12px;}
+.carte-outil .nom-outil{
+  font-family:'Cinzel',serif; font-size:15px; color:var(--parchment);
+  margin-bottom:6px;
+}
+.carte-outil .desc-outil{
+  font-size:12px; color:var(--parchment-dim); line-height:1.5;
+}
+
+/* ---------- Pied de page ---------- */
+footer{
+  text-align:center; padding:20px; color:var(--parchment-dim);
+  font-size:11px; font-family:'IBM Plex Mono',monospace;
+  border-top:1px solid var(--line);
+}
+</style>
+</head>
+<body>
+
+  <a class="fil-retour" href="../index.html">&larr; Portail</a>
+
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="hero-contenu">
+      <h1 class="hero-titre">ÉL<span>É</span>NIOR</h1>
+      <div class="hero-sous-titre">Les Compagnons de l'Infortune</div>
+      <p class="hero-accroche">
+        À Keha, le savoir se marchande et la magie se paie toujours plus
+        cher que promis. Entre trahisons de cour et pactes interdits,
+        chaque pouvoir gagné en coûte un autre.
+      </p>
+      <a class="cta-entrer" href="#outils" aria-label="Entrer dans la campagne">
+        <img class="etat-normal" src="img/bouton-entrer-normal.png" alt="Entrer dans la campagne">
+        <img class="etat-hover" src="img/bouton-entrer-hover.png" alt="" aria-hidden="true">
+      </a>
+    </div>
+  </section>
+
+  <!-- ============ AMBIANCE ============ -->
+  <section class="section-ambiance">
+    <div class="cadre-ambiance">
+      <img class="cadre-deco" src="img/cadre-ornemental.png" alt="" aria-hidden="true">
+      <div class="cadre-texte">
+        <h2>L'Émirat de Keha</h2>
+        <p>
+          Sous le soleil bas du désert d'Aladdab, Keha rassemble en une
+          seule mosaïque les échos d'un monde à bout de souffle : cours
+          andalouses et ottomanes en son cœur, cathédrales gothiques à ses
+          frontières nord, ruines gréco-romaines sur ses îles.
+        </p>
+        <p>
+          Un bas-fantasy sombre où la corruption ne vient pas des monstres,
+          mais des hommes — et où l'addiction au savoir interdit se paie
+          toujours, tôt ou tard.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ OUTILS ============ -->
+  <section class="section-outils" id="outils">
+    <div class="wrap">
+      <h2>Les outils de la campagne</h2>
+      <div class="sous-titre">Trois instruments pour jouer, suivre et incarner</div>
+
+      <div class="grille-outils">
+
+        <a class="carte-outil" href="cadran/">
+          <img src="img/icone-cadran.png" alt="">
+          <div class="nom-outil">Cadran des Trente Temps</div>
+          <div class="desc-outil">Gestionnaire de combat</div>
+        </a>
+
+        <a class="carte-outil" href="personnage/">
+          <img src="img/icone-personnage.png" alt="">
+          <div class="nom-outil">Fiche de personnage</div>
+          <div class="desc-outil">Consultation et suivi de personnage</div>
+        </a>
+
+        <a class="carte-outil" href="magie/magie-index.html">
+          <img src="img/icone-magie.png" alt="">
+          <div class="nom-outil">Grimoire des Sorts</div>
+          <div class="desc-outil">Calculateur et bibliothèque de sorts</div>
+        </a>
+
+      </div>
+    </div>
+  </section>
+
+  <footer>AmbreLab — Elénior</footer>
+
+</body>
+</html>

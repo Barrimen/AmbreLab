@@ -70,23 +70,20 @@
 
     <!--
       Convention : une <section class="campaign"> par campagne.
-      Ajouter une <a class="card"> par outil au fur et à mesure
-      qu'il est déployé sous pages/<campagne>/...
+
+      Depuis le 12/08/2026 (option A) : chaque campagne n'affiche plus ses
+      outils individuellement ici. Une seule carte mène vers la vitrine de
+      la campagne (pages/<campagne>/index.html), qui se charge elle-même de
+      distribuer vers les outils. Si une nouvelle campagne n'a pas encore de
+      vitrine dédiée, il est possible de lister ses outils à l'ancienne en
+      attendant (cf. historique git pour retrouver ce pattern).
     -->
     <section class="campaign">
       <h2 class="campaign-title">Elénior — Les Compagnons de l'Infortune (2026)</h2>
       <div class="grid">
-        <a class="card" href="elenior/cadran/">
-          <div class="name">Cadran des Trente Temps</div>
-          <div class="desc">Gestionnaire de combat</div>
-        </a>
-        <a class="card" href="elenior/personnage/">
-          <div class="name">Fiche de personnage</div>
-          <div class="desc">Consultation et suivi de personnage</div>
-        </a>
-        <a class="card" href="elenior/magie/magie-index.html">
-          <div class="name">Magie</div>
-          <div class="desc">Calculateur et bibliothèque de sorts</div>
+        <a class="card" href="elenior/">
+          <div class="name">Entrer dans la campagne</div>
+          <div class="desc">Ambiance, contexte, et accès aux 3 outils (Cadran, Fiche de personnage, Magie)</div>
         </a>
       </div>
     </section>

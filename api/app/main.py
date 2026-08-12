@@ -593,8 +593,6 @@ register_combatsheet_child_crud(
     model=CharacterArmorPiece, create_model=CharacterArmorPieceCreate,
 )
 
-from .utils import is_mj  # + les imports déjà en place
-
 # ---------------------------------------------------------------------------
 # Chronique de campagne
 # ---------------------------------------------------------------------------

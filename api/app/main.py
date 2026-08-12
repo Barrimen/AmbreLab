@@ -587,3 +587,157 @@ register_combatsheet_child_crud(
     app, path_segment="armor-pieces",
     model=CharacterArmorPiece, create_model=CharacterArmorPieceCreate,
 )
+
+from .utils import is_mj  # + les imports déjà en place
+
+# ---------------------------------------------------------------------------
+# Chronique de campagne
+# ---------------------------------------------------------------------------
+
+def _visible_entries_statement(campaign_id: int, mj_password: Optional[str]):
+    statement = select(ChroniqueEntree).where(ChroniqueEntree.campaign_id == campaign_id)
+    if not is_mj(mj_password):
+        statement = statement.where(
+            (ChroniqueEntree.visibilite == "publique") | (ChroniqueEntree.revelee == True)  # noqa: E712
+        )
+    return statement
+
+
+@app.post("/campaigns/{campaign_id}/chronique", response_model=ChroniqueEntree)
+def create_chronique_entry(
+    campaign_id: int, entry: ChroniqueEntreeCreate, session: Session = Depends(get_session)
+):
+    campaign = session.get(Campaign, campaign_id)
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campagne introuvable")
+    db_entry = ChroniqueEntree.model_validate(entry, update={"campaign_id": campaign_id})
+    session.add(db_entry)
+    session.commit()
+    session.refresh(db_entry)
+    return db_entry
+
+
+@app.get("/campaigns/{campaign_id}/chronique", response_model=List[ChroniqueEntree])
+def list_chronique_entries(
+    campaign_id: int,
+    mj_password: Optional[str] = None,
+    categorie: Optional[str] = None,
+    tag: Optional[str] = None,
+    character_id: Optional[int] = None,
+    q: Optional[str] = None,
+    sort: str = "date_jeu",  # "date_jeu" | "date_redaction"
+    session: Session = Depends(get_session),
+):
+    statement = _visible_entries_statement(campaign_id, mj_password)
+
+    if categorie:
+        statement = statement.where(ChroniqueEntree.categorie == categorie)
+    if tag:
+        # tags est une colonne JSON (liste) ; containment via l'opérateur Postgres @>
+        statement = statement.where(ChroniqueEntree.tags.contains([tag]))
+    if character_id:
+        linked = select(ChroniquePersonnage.entree_id).where(
+            ChroniquePersonnage.character_id == character_id
+        )
+        statement = statement.where(ChroniqueEntree.id.in_(linked))
+    if q:
+        statement = statement.where(
+            text("search_vector @@ websearch_to_tsquery('french', :q)")
+        ).params(q=q)
+
+    if sort == "date_jeu":
+        statement = statement.order_by(
+            ChroniqueEntree.date_jeu_ordre.is_(None), ChroniqueEntree.date_jeu_ordre
+        )
+    else:
+        statement = statement.order_by(ChroniqueEntree.date_redaction)
+
+    return session.exec(statement).all()
+
+
+@app.get("/chronique/{entry_id}", response_model=ChroniqueEntree)
+def get_chronique_entry(
+    entry_id: int, mj_password: Optional[str] = None, session: Session = Depends(get_session)
+):
+    entry = session.get(ChroniqueEntree, entry_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entrée introuvable")
+    if entry.visibilite == "mj" and not entry.revelee and not is_mj(mj_password):
+        raise HTTPException(status_code=403, detail="Réservé à la MJ")
+    return entry
+
+
+@app.put("/chronique/{entry_id}", response_model=ChroniqueEntree)
+def update_chronique_entry(
+    entry_id: int, entry: ChroniqueEntreeCreate, session: Session = Depends(get_session)
+):
+    db_entry = session.get(ChroniqueEntree, entry_id)
+    if not db_entry:
+        raise HTTPException(status_code=404, detail="Entrée introuvable")
+    for key, value in entry.model_dump(exclude_unset=True).items():
+        setattr(db_entry, key, value)
+    session.add(db_entry)
+    session.commit()
+    session.refresh(db_entry)
+    return db_entry
+
+
+@app.delete("/chronique/{entry_id}")
+def delete_chronique_entry(entry_id: int, session: Session = Depends(get_session)):
+    db_entry = session.get(ChroniqueEntree, entry_id)
+    if not db_entry:
+        raise HTTPException(status_code=404, detail="Entrée introuvable")
+    session.delete(db_entry)
+    session.commit()
+    return {"deleted": True}
+
+
+@app.post("/chronique/{entry_id}/illustration-upload-url", response_model=PortraitUploadResponse)
+def get_chronique_illustration_upload_url(entry_id: int, session: Session = Depends(get_session)):
+    entry = session.get(ChroniqueEntree, entry_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entrée introuvable")
+    key = f"elenior/chronique/{entry_id}/{generate_session_code(10)}"
+    return PortraitUploadResponse(upload_url=generate_upload_url(key, "image/*"), r2_key=key)
+
+
+register_character_child_crud  # (existe déjà — inspiration du bloc ci-dessous)
+
+# Enregistrement générique pour les enfants rattachés à entree_id
+# (même principe que register_character_child_crud, adapté au parent Chronique)
+def register_chronique_child_crud(*, path_segment, model, create_model):
+    base_path = f"/chronique/{{entry_id}}/{path_segment}"
+    item_path = f"/{path_segment}/{{item_id}}"
+
+    @app.post(base_path, response_model=model, name=f"create_{path_segment}")
+    def create_item(entry_id: int, item: create_model, session: Session = Depends(get_session)):
+        entry = session.get(ChroniqueEntree, entry_id)
+        if not entry:
+            raise HTTPException(status_code=404, detail="Entrée introuvable")
+        db_item = model.model_validate(item, update={"entree_id": entry_id})
+        session.add(db_item)
+        session.commit()
+        session.refresh(db_item)
+        return db_item
+
+    @app.get(base_path, response_model=List[model], name=f"list_{path_segment}")
+    def list_items(entry_id: int, session: Session = Depends(get_session)):
+        statement = select(model).where(model.entree_id == entry_id)
+        return session.exec(statement).all()
+
+    @app.delete(item_path, name=f"delete_{path_segment}")
+    def delete_item(item_id: int, session: Session = Depends(get_session)):
+        db_item = session.get(model, item_id)
+        if not db_item:
+            raise HTTPException(status_code=404, detail="Élément introuvable")
+        session.delete(db_item)
+        session.commit()
+        return {"deleted": True}
+
+
+register_chronique_child_crud(
+    path_segment="personnages", model=ChroniquePersonnage, create_model=ChroniquePersonnageCreate
+)
+register_chronique_child_crud(
+    path_segment="illustrations", model=ChroniqueIllustration, create_model=ChroniqueIllustrationCreate
+)

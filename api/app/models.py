@@ -364,3 +364,80 @@ class CharacterContact(CharacterContactBase, table=True):
 
 class CharacterContactCreate(CharacterContactBase):
     pass
+
+
+# ---------------------------------------------------------------------------
+# Chronique — mémoire vivante de la campagne (journal, épisodes, lettres,
+# infos MJ). Rattachée à campaign_id ; personnages liés en table à part.
+#
+# visibilite : "publique" | "mj". Le niveau "ciblée à un ou plusieurs
+# personnages précis" a été envisagé mais mis de côté (voir échange du
+# 12/08/2026) — pas de table de liaison pour l'instant, à ajouter plus tard
+# sans rien casser si besoin.
+#
+# revelee : bascule manuelle (MJ) qui rend une entrée "mj" visible de tous,
+# sans changer sa visibilite d'origine — utile pour une lettre secrète qui
+# doit être débloquée en cours de campagne.
+#
+# date_jeu_libelle / date_jeu_ordre : la campagne n'a pas de calendrier
+# formalisé dans l'app à ce jour, donc on garde un libellé texte libre pour
+# l'affichage ("vers la mi-hiver, an 3") et un entier optionnel pour le tri
+# chronologique en jeu (distinct de date_redaction, qui est la date réelle
+# d'écriture, automatique).
+#
+# search_vector : colonne générée côté Postgres (tsvector), pas de champ
+# SQLModel correspondant — voir le SQL à exécuter manuellement plus bas.
+# ---------------------------------------------------------------------------
+
+class ChroniqueEntreeBase(SQLModel):
+    titre: str
+    categorie: str  # "journal" | "episode" | "lettre" | "info_mj"
+    tags: list[str] = Field(default_factory=list, sa_column=Column(JSON))
+
+    contenu_md: str
+    auteur: Optional[str] = None  # nom libre, pas de compte
+
+    visibilite: str = "publique"  # "publique" | "mj"
+    revelee: bool = False
+
+    date_jeu_libelle: Optional[str] = None
+    date_jeu_ordre: Optional[int] = None
+    numero_seance: Optional[int] = None
+
+
+class ChroniqueEntree(ChroniqueEntreeBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    campaign_id: int = Field(foreign_key="campaign.id")
+    date_redaction: datetime = Field(default_factory=datetime.utcnow)
+
+
+class ChroniqueEntreeCreate(ChroniqueEntreeBase):
+    pass
+
+
+class ChroniquePersonnageBase(SQLModel):
+    character_id: int = Field(foreign_key="character.id")
+
+
+class ChroniquePersonnage(ChroniquePersonnageBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    entree_id: int = Field(foreign_key="chroniqueentree.id")
+
+
+class ChroniquePersonnageCreate(ChroniquePersonnageBase):
+    pass
+
+
+class ChroniqueIllustrationBase(SQLModel):
+    r2_key: str
+    legende: Optional[str] = None
+    ordre: int = 0
+
+
+class ChroniqueIllustration(ChroniqueIllustrationBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    entree_id: int = Field(foreign_key="chroniqueentree.id")
+
+
+class ChroniqueIllustrationCreate(ChroniqueIllustrationBase):
+    pass
